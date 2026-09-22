@@ -8,6 +8,7 @@ import { ItemFormModal } from "./components/ItemFormModal";
 import { ListsModal } from "./components/ListsModal";
 import { CATEGORIES, type Category, type ItemFormValues, type StockItem } from "./types";
 import { daysUntil } from "./lib/expiry";
+import { CATEGORY_THEME } from "./lib/categoryTheme";
 
 type FilterTab = "all" | "expired" | "soon";
 
@@ -187,8 +188,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-dvh bg-gray-50 pb-24">
-      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/90 px-4 py-3 backdrop-blur">
+    <div className="min-h-dvh bg-gradient-to-b from-rose-50/60 to-gray-50 pb-24">
+      <header className="sticky top-0 z-10 border-b border-rose-100 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-md items-center justify-between">
           <button
             onClick={() => setShowListsModal(true)}
@@ -197,13 +198,21 @@ function App() {
             <span className="truncate text-base font-bold text-gray-900">
               {selectedList ? selectedList.name : listsLoading ? "載入中…" : "尚未選擇清單"}
             </span>
-            <span className="text-xs text-gray-400">切換 / 管理清單 ▾</span>
+            <span className="text-xs font-medium text-rose-400">切換 / 管理清單 ▾</span>
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {avatarUrl && (
-              <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full" referrerPolicy="no-referrer" />
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-9 w-9 rounded-full ring-2 ring-rose-100"
+                referrerPolicy="no-referrer"
+              />
             )}
-            <button onClick={signOut} className="text-xs text-gray-400">
+            <button
+              onClick={signOut}
+              className="rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-400 active:bg-gray-100"
+            >
               登出
             </button>
           </div>
@@ -216,7 +225,7 @@ function App() {
             <p>還沒有清單，先建立一個吧！</p>
             <button
               onClick={() => setShowListsModal(true)}
-              className="mt-4 rounded-full bg-rose-600 px-5 py-2 text-sm font-medium text-white"
+              className="mt-4 rounded-full bg-gradient-to-br from-rose-500 to-rose-600 px-5 py-2 text-sm font-medium text-white shadow-md shadow-rose-600/20"
             >
               建立清單
             </button>
@@ -246,10 +255,10 @@ function App() {
               <span className="my-auto h-4 w-px shrink-0 bg-gray-200" />
               <button
                 onClick={() => setCategoryFilter("all")}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                   categoryFilter === "all"
-                    ? "bg-gray-800 text-white"
-                    : "bg-white text-gray-500 border border-gray-200"
+                    ? "border-gray-800 bg-gray-800 text-white"
+                    : "border-gray-200 bg-white text-gray-500"
                 }`}
               >
                 全部分類
@@ -258,10 +267,8 @@ function App() {
                 <button
                   key={c}
                   onClick={() => setCategoryFilter(c)}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-                    categoryFilter === c
-                      ? "bg-gray-800 text-white"
-                      : "bg-white text-gray-500 border border-gray-200"
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    categoryFilter === c ? CATEGORY_THEME[c].chipActive : CATEGORY_THEME[c].chipInactive
                   }`}
                 >
                   {c}
@@ -284,13 +291,20 @@ function App() {
             <div className="mt-2 space-y-4">
               {categoryGroups.map(({ category, subgroups }) => (
                 <div key={category}>
-                  <h2 className="mb-1.5 text-xs font-semibold text-gray-400">{category}</h2>
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${CATEGORY_THEME[category].badge}`}
+                    >
+                      {category}
+                    </span>
+                  </div>
                   <div className="space-y-2">
                     {subgroups.map(({ key, label, items: subItems }) => {
                       const groupKey = `${category}::${key}`;
                       return (
                         <SubcategoryCard
                           key={groupKey}
+                          category={category}
                           label={label}
                           items={subItems}
                           expanded={expandedKeys.has(groupKey)}
@@ -320,7 +334,7 @@ function App() {
             setShowAddModal(true);
           }}
           aria-label="新增存貨"
-          className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-rose-600 text-2xl text-white shadow-lg active:scale-95"
+          className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-rose-600 text-2xl text-white shadow-lg shadow-rose-600/30 transition-transform active:scale-95"
         >
           +
         </button>

@@ -4,8 +4,8 @@ interface Props {
 
 export function Login({ onSignIn }: Props) {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-rose-50 px-6 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-600 text-3xl">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-gradient-to-b from-rose-100 to-rose-50 px-6 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 text-3xl shadow-lg shadow-rose-600/30">
         🧴
       </div>
       <div>
@@ -18,7 +18,7 @@ export function Login({ onSignIn }: Props) {
       </div>
       <button
         onClick={onSignIn}
-        className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-md active:scale-95"
+        className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-lg transition-transform active:scale-95"
       >
         <GoogleIcon />
         使用 Google 帳號登入

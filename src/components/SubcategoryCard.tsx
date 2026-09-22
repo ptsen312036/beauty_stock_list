@@ -1,7 +1,9 @@
-import type { StockItem } from "../types";
+import type { Category, StockItem } from "../types";
+import { CATEGORY_THEME } from "../lib/categoryTheme";
 import { ItemCard } from "./ItemCard";
 
 interface Props {
+  category: Category;
   label: string;
   items: StockItem[];
   expanded: boolean;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function SubcategoryCard({
+  category,
   label,
   items,
   expanded,
@@ -22,25 +25,35 @@ export function SubcategoryCard({
   onEdit,
   onDuplicate,
 }: Props) {
+  const theme = CATEGORY_THEME[category];
+
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+    <div
+      className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow ${
+        expanded ? "border-gray-200 shadow-md" : "border-gray-100"
+      }`}
+    >
       <button
         onClick={onToggleExpand}
-        className="flex w-full items-center justify-between px-3 py-2.5 active:bg-gray-50"
+        className="flex w-full items-center justify-between px-3.5 py-3 active:bg-gray-50"
       >
-        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm font-semibold text-gray-800">{label}</span>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${theme.badge}`}>
             {items.length}
           </span>
-          <span className={`text-gray-300 transition-transform ${expanded ? "rotate-180" : ""}`}>
+          <span
+            className={`text-gray-300 transition-transform duration-200 ${
+              expanded ? "rotate-180" : ""
+            }`}
+          >
             ▾
           </span>
         </div>
       </button>
 
       {expanded && (
-        <ul className="space-y-2 border-t border-gray-100 p-2">
+        <ul className="space-y-2 border-t border-gray-100 bg-gray-50/50 p-2.5">
           {items.map((item) => (
             <li key={item.id}>
               <ItemCard

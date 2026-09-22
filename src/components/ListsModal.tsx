@@ -49,10 +49,14 @@ export function ListsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-      <div className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl">
+      <div className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">我的清單</h2>
-          <button onClick={onClose} className="text-gray-400" aria-label="關閉">
+          <button
+            onClick={onClose}
+            className="rounded-full bg-gray-50 px-2.5 py-1 text-gray-400 active:bg-gray-100"
+            aria-label="關閉"
+          >
             ✕
           </button>
         </div>
@@ -63,10 +67,10 @@ export function ListsModal({
               {lists.map((list) => (
                 <li
                   key={list.id}
-                  className={`flex items-center justify-between rounded-xl border p-3 ${
+                  className={`flex items-center justify-between rounded-2xl border p-3 shadow-sm ${
                     list.id === selectedListId
-                      ? "border-rose-300 bg-rose-50"
-                      : "border-gray-200"
+                      ? "border-rose-200 bg-rose-50"
+                      : "border-gray-100 bg-white"
                   }`}
                 >
                   <button
@@ -76,14 +80,14 @@ export function ListsModal({
                       onClose();
                     }}
                   >
-                    <p className="text-sm font-medium text-gray-900">{list.name}</p>
+                    <p className="text-sm font-semibold text-gray-900">{list.name}</p>
                     <p className="text-xs text-gray-400">
                       {list.memberEmails.length} 位成員
                       {list.ownerEmail === currentUserEmail ? "・你是擁有者" : ""}
                     </p>
                   </button>
                   <button
-                    className="ml-2 shrink-0 rounded-full px-2 py-1 text-xs text-gray-400 active:bg-gray-100"
+                    className="ml-2 shrink-0 rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-500 active:bg-gray-100"
                     onClick={() => setManagingId(list.id)}
                   >
                     管理
@@ -100,12 +104,12 @@ export function ListsModal({
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 placeholder="新清單名稱，例如：新竹家裡保養品"
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100"
               />
               <button
                 type="submit"
                 disabled={creating || !newListName.trim()}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-rose-600/20 disabled:opacity-50"
               >
                 建立
               </button>
@@ -123,11 +127,11 @@ export function ListsModal({
             <h3 className="mb-2 text-sm font-semibold text-gray-900">{managingList.name}</h3>
 
             <p className="mb-1 text-xs font-medium text-gray-500">成員</p>
-            <ul className="mb-3 space-y-1">
+            <ul className="mb-3 space-y-1.5">
               {managingList.memberEmails.map((email) => (
                 <li
                   key={email}
-                  className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-sm"
+                  className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-sm"
                 >
                   <span className="truncate text-gray-700">
                     {email}
@@ -167,11 +171,11 @@ export function ListsModal({
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="家人的 Gmail 信箱"
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100"
               />
               <button
                 type="submit"
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+                className="rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-rose-600/20"
               >
                 邀請
               </button>
@@ -189,7 +193,7 @@ export function ListsModal({
                     setManagingId(null);
                   }
                 }}
-                className="mt-6 w-full rounded-lg border border-red-200 py-2 text-sm text-red-500"
+                className="mt-6 w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-500"
               >
                 刪除整個清單
               </button>

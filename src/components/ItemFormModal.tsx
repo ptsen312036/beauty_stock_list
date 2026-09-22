@@ -89,12 +89,20 @@ export function ItemFormModal({
     }
   }
 
+  const inputClass =
+    "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100";
+  const labelClass = "mb-1 block text-xs font-semibold text-gray-500";
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-      <div className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl">
+      <div className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">{isEditing ? "編輯存貨" : "新增存貨"}</h2>
-          <button onClick={onClose} className="text-gray-400" aria-label="關閉">
+          <button
+            onClick={onClose}
+            className="rounded-full bg-gray-50 px-2.5 py-1 text-gray-400 active:bg-gray-100"
+            aria-label="關閉"
+          >
             ✕
           </button>
         </div>
@@ -111,10 +119,10 @@ export function ItemFormModal({
           />
           <label
             htmlFor="photo-input"
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-rose-200 bg-rose-50 py-4 text-sm font-medium text-rose-600 active:bg-rose-100"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rose-200 bg-rose-50 py-4 text-sm font-medium text-rose-600 active:bg-rose-100"
           >
             {previewUrl && (
-              <img src={previewUrl} alt="" className="h-10 w-10 rounded object-cover" />
+              <img src={previewUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
             )}
             {ocrRunning ? "辨識中…" : "📷 拍照辨識效期"}
           </label>
@@ -125,40 +133,42 @@ export function ItemFormModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">品牌（選填）</label>
-            <input
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              placeholder="例如：Chanel"
-              list="brand-options"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
-            />
-            <datalist id="brand-options">
-              {brands.map((b) => (
-                <option key={b} value={b} />
-              ))}
-            </datalist>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">品名</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例如：SK-II 青春露"
-              required
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3 rounded-2xl bg-gray-50 p-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">分類</label>
+              <label className={labelClass}>品牌（選填）</label>
+              <input
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                placeholder="例如：Chanel"
+                list="brand-options"
+                className={inputClass}
+              />
+              <datalist id="brand-options">
+                {brands.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
+            </div>
+
+            <div>
+              <label className={labelClass}>品名</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="例如：SK-II 青春露"
+                required
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 rounded-2xl bg-gray-50 p-3">
+            <div>
+              <label className={labelClass}>分類</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as Category)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+                className={inputClass}
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -168,13 +178,13 @@ export function ItemFormModal({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">子分類（選填）</label>
+              <label className={labelClass}>子分類（選填）</label>
               <input
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
                 placeholder="例如：精華液"
                 list="subcategory-options"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+                className={inputClass}
               />
               <datalist id="subcategory-options">
                 {subcategories.map((s) => (
@@ -184,13 +194,13 @@ export function ItemFormModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 rounded-2xl bg-gray-50 p-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">正貨／小樣</label>
+              <label className={labelClass}>正貨／小樣</label>
               <select
                 value={packageType}
                 onChange={(e) => setPackageType(e.target.value as PackageType)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+                className={inputClass}
               >
                 {PACKAGE_TYPES.map((p) => (
                   <option key={p} value={p}>
@@ -200,34 +210,36 @@ export function ItemFormModal({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">容量（選填）</label>
+              <label className={labelClass}>容量（選填）</label>
               <input
                 value={capacity}
                 onChange={(e) => setCapacity(e.target.value)}
                 placeholder="例如：30ml"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+                className={inputClass}
               />
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">有效期限</label>
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
-            />
-          </div>
+          <div className="space-y-3 rounded-2xl bg-gray-50 p-3">
+            <div>
+              <label className={labelClass}>有效期限</label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className={inputClass}
+              />
+            </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">備註（選填）</label>
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="例如：媽媽周年慶買的"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
-            />
+            <div>
+              <label className={labelClass}>備註（選填）</label>
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="例如：媽媽周年慶買的"
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {saveError && <p className="text-xs text-red-500">{saveError}</p>}
@@ -235,7 +247,7 @@ export function ItemFormModal({
           <button
             type="submit"
             disabled={saving || !name.trim()}
-            className="mt-2 w-full rounded-xl bg-rose-600 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-2 w-full rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 py-3 text-sm font-semibold text-white shadow-md shadow-rose-600/20 disabled:opacity-50"
           >
             {saving ? "儲存中…" : isEditing ? "儲存修改" : "新增到清單"}
           </button>
