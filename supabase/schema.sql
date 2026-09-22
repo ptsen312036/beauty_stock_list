@@ -129,9 +129,15 @@ alter table lists enable row level security;
 alter table list_members enable row level security;
 alter table items enable row level security;
 
+-- 擁有者也直接用 owner_email 判斷（不能只靠 is_list_member），因為建立清單時
+-- createList() 用 insert().select() 會在同一個 INSERT 敘述裡立刻要求把新資料
+-- RETURNING 回來，Postgres 對帶 RETURNING 的 INSERT 會額外套用 SELECT 政策檢查。
+-- 而「把 owner 加進 list_members」是另一個 AFTER INSERT trigger（handle_new_list）
+-- 做的事，執行順序上還輪不到它，若 SELECT 政策只看 list_members 會在那個當下
+-- 查無資料而判定違反 RLS，導致建立清單這個動作本身失敗。
 drop policy if exists "members can select lists" on lists;
 create policy "members can select lists" on lists
-  for select using (is_list_member(id));
+  for select using (is_list_member(id) or lower(owner_email) = lower(auth.jwt() ->> 'email'));
 
 drop policy if exists "owner can insert lists" on lists;
 create policy "owner can insert lists" on lists
