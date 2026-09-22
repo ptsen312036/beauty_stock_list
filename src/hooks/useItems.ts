@@ -9,8 +9,9 @@ interface ItemRow {
   name: string;
   category: string;
   subcategory: string;
+  package_type: string;
+  capacity: string;
   expiry_date: string | null;
-  quantity: number;
   note: string;
   status: "active" | "used";
   added_by_email: string;
@@ -26,8 +27,9 @@ function mapRow(row: ItemRow): StockItem {
     name: row.name,
     category: row.category as StockItem["category"],
     subcategory: row.subcategory,
+    packageType: row.package_type as StockItem["packageType"],
+    capacity: row.capacity,
     expiryDate: row.expiry_date,
-    quantity: row.quantity,
     note: row.note,
     status: row.status,
     addedByEmail: row.added_by_email,
@@ -99,8 +101,9 @@ export function useItems(listId: string | null) {
       name: item.name,
       category: item.category,
       subcategory: item.subcategory,
+      package_type: item.packageType,
+      capacity: item.capacity,
       expiry_date: item.expiryDate,
-      quantity: item.quantity,
       note: item.note,
       status: item.status,
       added_by_email: item.addedByEmail,
@@ -118,8 +121,9 @@ export function useItems(listId: string | null) {
         name: values.name,
         category: values.category,
         subcategory: values.subcategory,
+        package_type: values.packageType,
+        capacity: values.capacity,
         expiry_date: values.expiryDate,
-        quantity: values.quantity,
         note: values.note,
       })
       .eq("id", itemId);

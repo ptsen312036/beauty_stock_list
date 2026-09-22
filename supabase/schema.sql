@@ -22,6 +22,8 @@ create table if not exists items (
   name text not null,
   category text not null,
   subcategory text not null default '',
+  package_type text not null default '正貨',
+  capacity text not null default '',
   expiry_date date,
   quantity integer not null default 1,
   note text not null default '',
@@ -32,9 +34,22 @@ create table if not exists items (
   used_at timestamptz
 );
 
--- 舊資料庫已經有 items 表格時，補上這兩欄（新專案第一次跑 schema 不會受影響）。
+-- 舊資料庫已經有 items 表格時，補上這些欄位（新專案第一次跑 schema 不會受影響）。
+-- quantity 欄位仍保留在資料庫裡（有 not null default，不影響既有資料），
+-- 只是 App 從這個版本開始改用「每個實體品項各自一筆」，不再讀寫這欄。
 alter table items add column if not exists brand text not null default '';
 alter table items add column if not exists subcategory text not null default '';
+alter table items add column if not exists package_type text not null default '正貨';
+alter table items add column if not exists capacity text not null default '';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'items_package_type_check'
+  ) then
+    alter table items add constraint items_package_type_check check (package_type in ('正貨', '小樣'));
+  end if;
+end $$;
 
 -- 建立清單時，自動把擁有者加進 list_members，避免「先有雞先有蛋」的權限問題。
 create or replace function handle_new_list()

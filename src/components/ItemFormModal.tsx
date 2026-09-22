@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { CATEGORIES, type Category, type ItemFormValues } from "../types";
+import { CATEGORIES, PACKAGE_TYPES, type Category, type ItemFormValues, type PackageType } from "../types";
 
 interface Props {
   brands: string[];
@@ -21,8 +21,11 @@ export function ItemFormModal({ brands, subcategories, initialValues, onClose, o
   const [name, setName] = useState(initialValues?.name ?? "");
   const [category, setCategory] = useState<Category>(initialValues?.category ?? CATEGORIES[0]);
   const [subcategory, setSubcategory] = useState(initialValues?.subcategory ?? "");
+  const [packageType, setPackageType] = useState<PackageType>(
+    initialValues?.packageType ?? PACKAGE_TYPES[0],
+  );
+  const [capacity, setCapacity] = useState(initialValues?.capacity ?? "");
   const [expiryDate, setExpiryDate] = useState(initialValues?.expiryDate ?? "");
-  const [quantity, setQuantity] = useState(initialValues?.quantity ?? 1);
   const [note, setNote] = useState(initialValues?.note ?? "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -67,8 +70,9 @@ export function ItemFormModal({ brands, subcategories, initialValues, onClose, o
         name: name.trim(),
         category,
         subcategory: subcategory.trim(),
+        packageType,
+        capacity: capacity.trim(),
         expiryDate: expiryDate || null,
-        quantity,
         note: note.trim(),
       });
       onClose();
@@ -174,15 +178,30 @@ export function ItemFormModal({ brands, subcategories, initialValues, onClose, o
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">數量</label>
-            <input
-              type="number"
-              min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-500">正貨／小樣</label>
+              <select
+                value={packageType}
+                onChange={(e) => setPackageType(e.target.value as PackageType)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+              >
+                {PACKAGE_TYPES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-500">容量（選填）</label>
+              <input
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                placeholder="例如：30ml"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+              />
+            </div>
           </div>
 
           <div>

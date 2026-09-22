@@ -3,7 +3,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useLists } from "./hooks/useLists";
 import { useItems } from "./hooks/useItems";
 import { Login } from "./components/Login";
-import { ItemCard } from "./components/ItemCard";
+import { SubcategoryCard } from "./components/SubcategoryCard";
 import { ItemFormModal } from "./components/ItemFormModal";
 import { ListsModal } from "./components/ListsModal";
 import { CATEGORIES, type Category, type StockItem } from "./types";
@@ -12,6 +12,29 @@ import { daysUntil } from "./lib/expiry";
 type FilterTab = "all" | "expired" | "soon";
 
 const SELECTED_LIST_KEY = "beauty-stock-selected-list";
+const UNCATEGORIZED_LABEL = "未分類";
+
+function compareByExpiry(a: StockItem, b: StockItem) {
+  if (a.status !== b.status) return a.status === "used" ? 1 : -1;
+  const da = daysUntil(a.expiryDate);
+  const db = daysUntil(b.expiryDate);
+  if (da === null && db === null) return b.createdAt - a.createdAt;
+  if (da === null) return 1;
+  if (db === null) return -1;
+  return da - db;
+}
+
+interface SubcategoryGroup {
+  key: string;
+  label: string;
+  items: StockItem[];
+  minDays: number | null;
+}
+
+interface CategoryGroup {
+  category: Category;
+  subgroups: SubcategoryGroup[];
+}
 
 function App() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
@@ -49,6 +72,7 @@ function App() {
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [showUsed, setShowUsed] = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const visibleItems = useMemo(() => {
     let list = items.filter((i) => (showUsed ? true : i.status === "active"));
@@ -68,16 +92,76 @@ function App() {
       });
     }
 
-    return [...list].sort((a, b) => {
-      if (a.status !== b.status) return a.status === "used" ? 1 : -1;
-      const da = daysUntil(a.expiryDate);
-      const db = daysUntil(b.expiryDate);
-      if (da === null && db === null) return b.createdAt - a.createdAt;
-      if (da === null) return 1;
-      if (db === null) return -1;
-      return da - db;
-    });
+    return list;
   }, [items, categoryFilter, filterTab, showUsed]);
+
+  const categoryGroups = useMemo<CategoryGroup[]>(() => {
+    const byCategory = new Map<Category, StockItem[]>();
+    for (const item of visibleItems) {
+      const arr = byCategory.get(item.category) ?? [];
+      arr.push(item);
+      byCategory.set(item.category, arr);
+    }
+
+    return CATEGORIES.filter((c) => byCategory.has(c)).map((category) => {
+      const bySub = new Map<string, StockItem[]>();
+      for (const item of byCategory.get(category)!) {
+        const key = item.subcategory || UNCATEGORIZED_LABEL;
+        const arr = bySub.get(key) ?? [];
+        arr.push(item);
+        bySub.set(key, arr);
+      }
+
+      const subgroups: SubcategoryGroup[] = [...bySub.entries()].map(([key, subItems]) => {
+        const sortedItems = [...subItems].sort(compareByExpiry);
+        const minDays = sortedItems.reduce<number | null>((min, item) => {
+          const d = daysUntil(item.expiryDate);
+          if (d === null) return min;
+          return min === null ? d : Math.min(min, d);
+        }, null);
+        return { key, label: key, items: sortedItems, minDays };
+      });
+
+      subgroups.sort((a, b) => {
+        if (a.minDays === null && b.minDays === null) {
+          return a.label.localeCompare(b.label, "zh-Hant");
+        }
+        if (a.minDays === null) return 1;
+        if (b.minDays === null) return -1;
+        return a.minDays - b.minDays;
+      });
+
+      return { category, subgroups };
+    });
+  }, [visibleItems]);
+
+  function toggleExpanded(key: string) {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function handleToggleUsed(item: StockItem, used: boolean) {
+    if (!selectedList) return;
+    markUsed(selectedList.id, item.id, used).catch((err) =>
+      alert(err instanceof Error ? err.message : "更新失敗，請再試一次"),
+    );
+  }
+
+  function handleDeleteItem(item: StockItem) {
+    if (!selectedList) return;
+    if (confirm(`確定要刪除「${item.name}」嗎？`)) {
+      deleteItem(selectedList.id, item.id).catch((err) =>
+        alert(err instanceof Error ? err.message : "刪除失敗，請再試一次"),
+      );
+    }
+  }
 
   if (authLoading) {
     return <div className="flex min-h-dvh items-center justify-center text-gray-400">載入中…</div>;
@@ -182,31 +266,33 @@ function App() {
               </label>
             </div>
 
-            <ul className="mt-2 space-y-2">
-              {visibleItems.map((item) => (
-                <li key={item.id}>
-                  <ItemCard
-                    item={item}
-                    onToggleUsed={(used) =>
-                      markUsed(selectedList.id, item.id, used).catch((err) =>
-                        alert(err instanceof Error ? err.message : "更新失敗，請再試一次"),
-                      )
-                    }
-                    onDelete={() => {
-                      if (confirm(`確定要刪除「${item.name}」嗎？`)) {
-                        deleteItem(selectedList.id, item.id).catch((err) =>
-                          alert(err instanceof Error ? err.message : "刪除失敗，請再試一次"),
-                        );
-                      }
-                    }}
-                    onEdit={() => setEditingItem(item)}
-                  />
-                </li>
+            <div className="mt-2 space-y-4">
+              {categoryGroups.map(({ category, subgroups }) => (
+                <div key={category}>
+                  <h2 className="mb-1.5 text-xs font-semibold text-gray-400">{category}</h2>
+                  <div className="space-y-2">
+                    {subgroups.map(({ key, label, items: subItems }) => {
+                      const groupKey = `${category}::${key}`;
+                      return (
+                        <SubcategoryCard
+                          key={groupKey}
+                          label={label}
+                          items={subItems}
+                          expanded={expandedKeys.has(groupKey)}
+                          onToggleExpand={() => toggleExpanded(groupKey)}
+                          onToggleUsed={handleToggleUsed}
+                          onDelete={handleDeleteItem}
+                          onEdit={setEditingItem}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
-              {visibleItems.length === 0 && (
+              {categoryGroups.length === 0 && (
                 <p className="py-12 text-center text-sm text-gray-400">這裡還沒有任何品項</p>
               )}
-            </ul>
+            </div>
           </>
         )}
       </main>

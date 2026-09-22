@@ -10,6 +10,10 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number];
 
+export const PACKAGE_TYPES = ["正貨", "小樣"] as const;
+
+export type PackageType = (typeof PACKAGE_TYPES)[number];
+
 export interface StockList {
   id: string;
   name: string;
@@ -26,8 +30,9 @@ export interface StockItem {
   name: string;
   category: Category;
   subcategory: string;
+  packageType: PackageType;
+  capacity: string;
   expiryDate: string | null; // ISO date string yyyy-mm-dd
-  quantity: number;
   note: string;
   status: ItemStatus;
   addedByEmail: string;
@@ -38,7 +43,14 @@ export interface StockItem {
 
 export type ItemFormValues = Pick<
   StockItem,
-  "brand" | "name" | "category" | "subcategory" | "expiryDate" | "quantity" | "note"
+  | "brand"
+  | "name"
+  | "category"
+  | "subcategory"
+  | "packageType"
+  | "capacity"
+  | "expiryDate"
+  | "note"
 >;
 
 export type ExpiryLevel = "expired" | "soon" | "later" | "ok" | "none";

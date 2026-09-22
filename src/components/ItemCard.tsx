@@ -34,16 +34,13 @@ export function ItemCard({ item, onToggleUsed, onDelete, onEdit }: Props) {
           {item.name}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-            {item.category}
-          </span>
-          {item.subcategory && (
+          {item.packageType === "小樣" && (
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-              {item.subcategory}
+              小樣
             </span>
           )}
-          {item.quantity > 1 && (
-            <span className="text-xs text-gray-400">x{item.quantity}</span>
+          {item.capacity && (
+            <span className="text-xs text-gray-400">{item.capacity}</span>
           )}
           {!used && (
             <span
