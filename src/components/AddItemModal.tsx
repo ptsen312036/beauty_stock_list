@@ -20,6 +20,7 @@ export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: P
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -54,6 +55,7 @@ export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: P
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await onSubmit({
         name: name.trim(),
@@ -68,6 +70,8 @@ export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: P
         usedAt: null,
       });
       onClose();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "新增失敗，請再試一次");
     } finally {
       setSaving(false);
     }
@@ -166,6 +170,8 @@ export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: P
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
             />
           </div>
+
+          {saveError && <p className="text-xs text-red-500">{saveError}</p>}
 
           <button
             type="submit"

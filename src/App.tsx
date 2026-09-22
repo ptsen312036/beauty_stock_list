@@ -185,10 +185,16 @@ function App() {
                 <li key={item.id}>
                   <ItemCard
                     item={item}
-                    onToggleUsed={(used) => markUsed(selectedList.id, item.id, used)}
+                    onToggleUsed={(used) =>
+                      markUsed(selectedList.id, item.id, used).catch((err) =>
+                        alert(err instanceof Error ? err.message : "更新失敗，請再試一次"),
+                      )
+                    }
                     onDelete={() => {
                       if (confirm(`確定要刪除「${item.name}」嗎？`)) {
-                        deleteItem(selectedList.id, item.id);
+                        deleteItem(selectedList.id, item.id).catch((err) =>
+                          alert(err instanceof Error ? err.message : "刪除失敗，請再試一次"),
+                        );
                       }
                     }}
                   />

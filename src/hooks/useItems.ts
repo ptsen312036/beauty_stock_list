@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import type { StockItem } from "../types";
 
@@ -36,6 +36,7 @@ function mapRow(row: ItemRow): StockItem {
 export function useItems(listId: string | null) {
   const [items, setItems] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const loadRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     if (!listId) {
@@ -60,6 +61,7 @@ export function useItems(listId: string | null) {
     }
 
     load();
+    loadRef.current = load;
 
     // Any family member's change (add / check off / delete) re-syncs everyone live.
     const channel = supabase
@@ -78,7 +80,7 @@ export function useItems(listId: string | null) {
   }, [listId]);
 
   async function addItem(listId: string, item: Omit<StockItem, "id">) {
-    await supabase.from("items").insert({
+    const { error } = await supabase.from("items").insert({
       list_id: listId,
       name: item.name,
       category: item.category,
@@ -89,17 +91,23 @@ export function useItems(listId: string | null) {
       added_by_email: item.addedByEmail,
       added_by_name: item.addedByName,
     });
+    if (error) throw new Error(error.message);
+    await loadRef.current();
   }
 
   async function markUsed(_listId: string, itemId: string, used: boolean) {
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({ status: used ? "used" : "active", used_at: used ? new Date().toISOString() : null })
       .eq("id", itemId);
+    if (error) throw new Error(error.message);
+    await loadRef.current();
   }
 
   async function deleteItem(_listId: string, itemId: string) {
-    await supabase.from("items").delete().eq("id", itemId);
+    const { error } = await supabase.from("items").delete().eq("id", itemId);
+    if (error) throw new Error(error.message);
+    await loadRef.current();
   }
 
   return { items, loading, addItem, markUsed, deleteItem };
