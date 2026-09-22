@@ -42,3 +42,10 @@ export function formatExpiryText(expiryDate: string | null): string {
   if (days === 0) return "今天到期";
   return `剩 ${days} 天`;
 }
+
+/** Appends the ml unit, stripping any "ml" the user already typed to avoid "30mlml". */
+export function formatCapacity(capacity: string): string {
+  const trimmed = capacity.trim();
+  if (!trimmed) return "";
+  return `${trimmed.replace(/\s*ml$/i, "")}ml`;
+}

@@ -211,12 +211,18 @@ export function ItemFormModal({
             </div>
             <div>
               <label className={labelClass}>容量（選填）</label>
-              <input
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                placeholder="例如：30ml"
-                className={inputClass}
-              />
+              <div className="relative">
+                <input
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  placeholder="例如：30"
+                  inputMode="decimal"
+                  className={`${inputClass} pr-9`}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                  ml
+                </span>
+              </div>
             </div>
           </div>
 

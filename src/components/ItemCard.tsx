@@ -1,5 +1,5 @@
 import type { StockItem } from "../types";
-import { EXPIRY_BADGE_CLASS, formatExpiryText, getExpiryLevel } from "../lib/expiry";
+import { EXPIRY_BADGE_CLASS, formatCapacity, formatExpiryText, getExpiryLevel } from "../lib/expiry";
 import { CATEGORY_THEME } from "../lib/categoryTheme";
 
 interface Props {
@@ -53,7 +53,7 @@ export function ItemCard({ item, onToggleUsed, onDelete, onEdit, onDuplicate }: 
             )}
             {item.capacity && (
               <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                {item.capacity}
+                {formatCapacity(item.capacity)}
               </span>
             )}
             {!used && (
