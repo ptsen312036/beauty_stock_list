@@ -45,10 +45,10 @@ export function useLists(userEmail: string | null) {
     refresh();
   }, [refresh]);
 
-  async function createList(name: string, ownerEmail: string) {
+  async function createList(name: string) {
     const { data, error } = await supabase
       .from("lists")
-      .insert({ name, owner_email: ownerEmail })
+      .insert({ name })
       .select()
       .single();
     if (error || !data) {

@@ -383,7 +383,7 @@ function App() {
           onSelect={setSelectedListId}
           onClose={() => setShowListsModal(false)}
           onCreate={async (name) => {
-            const id = await createList(name, user.email ?? "");
+            const id = await createList(name);
             setSelectedListId(id);
           }}
           onAddMember={addMember}

@@ -55,6 +55,27 @@ begin
   end if;
 end $$;
 
+-- 建立清單時，owner_email 一律以「目前登入者的 JWT email」為準，不採用前端傳來的值，
+-- 避免前端 session 狀態沒同步好時，送出的 owner_email 跟資料庫實際核對的 JWT email 對不起來，
+-- 導致「new row violates row-level security policy for table "lists"」。
+-- 順便統一轉小寫，避免同一個 Google 帳號在不同裝置登入時大小寫不一致造成比對失敗。
+create or replace function set_list_owner_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.owner_email := lower(auth.jwt() ->> 'email');
+  return new;
+end;
+$$;
+
+drop trigger if exists on_list_insert_set_owner on lists;
+create trigger on_list_insert_set_owner
+  before insert on lists
+  for each row execute function set_list_owner_email();
+
 -- 建立清單時，自動把擁有者加進 list_members，避免「先有雞先有蛋」的權限問題。
 create or replace function handle_new_list()
 returns trigger
@@ -74,6 +95,8 @@ create trigger on_list_created
   for each row execute function handle_new_list();
 
 -- 權限判斷用的 helper function（security definer 避免 RLS 遞迴問題）
+-- 統一用 lower() 比對，避免同一個 Google 帳號因為大小寫不同（例如邀請時手動輸入的信箱跟
+-- Google 登入回傳的信箱大小寫不一樣）而被誤判成不是同一個人。
 create or replace function is_list_member(target_list_id uuid)
 returns boolean
 language sql
@@ -84,7 +107,7 @@ as $$
   select exists (
     select 1 from list_members
     where list_id = target_list_id
-      and email = auth.jwt() ->> 'email'
+      and lower(email) = lower(auth.jwt() ->> 'email')
   );
 $$;
 
@@ -98,7 +121,7 @@ as $$
   select exists (
     select 1 from lists
     where id = target_list_id
-      and owner_email = auth.jwt() ->> 'email'
+      and lower(owner_email) = lower(auth.jwt() ->> 'email')
   );
 $$;
 
@@ -112,7 +135,7 @@ create policy "members can select lists" on lists
 
 drop policy if exists "owner can insert lists" on lists;
 create policy "owner can insert lists" on lists
-  for insert with check (owner_email = auth.jwt() ->> 'email');
+  for insert with check (lower(owner_email) = lower(auth.jwt() ->> 'email'));
 
 drop policy if exists "members can update lists" on lists;
 create policy "members can update lists" on lists
@@ -120,7 +143,7 @@ create policy "members can update lists" on lists
 
 drop policy if exists "owner can delete lists" on lists;
 create policy "owner can delete lists" on lists
-  for delete using (owner_email = auth.jwt() ->> 'email');
+  for delete using (lower(owner_email) = lower(auth.jwt() ->> 'email'));
 
 drop policy if exists "members can view membership" on list_members;
 create policy "members can view membership" on list_members
@@ -132,7 +155,7 @@ create policy "owner or member can invite" on list_members
 
 drop policy if exists "owner or self can remove membership" on list_members;
 create policy "owner or self can remove membership" on list_members
-  for delete using (is_list_owner(list_id) or email = auth.jwt() ->> 'email');
+  for delete using (is_list_owner(list_id) or lower(email) = lower(auth.jwt() ->> 'email'));
 
 drop policy if exists "members can select items" on items;
 create policy "members can select items" on items
