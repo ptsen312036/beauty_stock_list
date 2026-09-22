@@ -6,9 +6,10 @@ interface Props {
   onToggleUsed: (used: boolean) => void;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
 }
 
-export function ItemCard({ item, onToggleUsed, onDelete, onEdit }: Props) {
+export function ItemCard({ item, onToggleUsed, onDelete, onEdit, onDuplicate }: Props) {
   const level = getExpiryLevel(item.expiryDate);
   const used = item.status === "used";
 
@@ -54,6 +55,14 @@ export function ItemCard({ item, onToggleUsed, onDelete, onEdit }: Props) {
         {used && item.usedByName && (
           <p className="mt-1 truncate text-xs text-gray-400">由 {item.usedByName} 標記已使用</p>
         )}
+      </button>
+
+      <button
+        aria-label="複製新增"
+        onClick={onDuplicate}
+        className="shrink-0 rounded-full p-2 text-gray-300 active:bg-gray-100 active:text-gray-500"
+      >
+        +
       </button>
 
       <button

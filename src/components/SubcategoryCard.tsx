@@ -9,6 +9,7 @@ interface Props {
   onToggleUsed: (item: StockItem, used: boolean) => void;
   onDelete: (item: StockItem) => void;
   onEdit: (item: StockItem) => void;
+  onDuplicate: (item: StockItem) => void;
 }
 
 export function SubcategoryCard({
@@ -19,6 +20,7 @@ export function SubcategoryCard({
   onToggleUsed,
   onDelete,
   onEdit,
+  onDuplicate,
 }: Props) {
   return (
     <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
@@ -46,6 +48,7 @@ export function SubcategoryCard({
                 onToggleUsed={(used) => onToggleUsed(item, used)}
                 onDelete={() => onDelete(item)}
                 onEdit={() => onEdit(item)}
+                onDuplicate={() => onDuplicate(item)}
               />
             </li>
           ))}

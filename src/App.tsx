@@ -6,7 +6,7 @@ import { Login } from "./components/Login";
 import { SubcategoryCard } from "./components/SubcategoryCard";
 import { ItemFormModal } from "./components/ItemFormModal";
 import { ListsModal } from "./components/ListsModal";
-import { CATEGORIES, type Category, type StockItem } from "./types";
+import { CATEGORIES, type Category, type ItemFormValues, type StockItem } from "./types";
 import { daysUntil } from "./lib/expiry";
 
 type FilterTab = "all" | "expired" | "soon";
@@ -67,6 +67,7 @@ function App() {
     useItems(selectedListId);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addInitialValues, setAddInitialValues] = useState<ItemFormValues | null>(null);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [showListsModal, setShowListsModal] = useState(false);
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
@@ -161,6 +162,20 @@ function App() {
         alert(err instanceof Error ? err.message : "刪除失敗，請再試一次"),
       );
     }
+  }
+
+  function handleDuplicate(item: StockItem) {
+    setAddInitialValues({
+      brand: item.brand,
+      name: item.name,
+      category: item.category,
+      subcategory: item.subcategory,
+      packageType: item.packageType,
+      capacity: item.capacity,
+      expiryDate: null,
+      note: "",
+    });
+    setShowAddModal(true);
   }
 
   if (authLoading) {
@@ -283,6 +298,7 @@ function App() {
                           onToggleUsed={handleToggleUsed}
                           onDelete={handleDeleteItem}
                           onEdit={setEditingItem}
+                          onDuplicate={handleDuplicate}
                         />
                       );
                     })}
@@ -299,7 +315,10 @@ function App() {
 
       {selectedList && (
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setAddInitialValues(null);
+            setShowAddModal(true);
+          }}
           aria-label="新增存貨"
           className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-rose-600 text-2xl text-white shadow-lg active:scale-95"
         >
@@ -311,7 +330,11 @@ function App() {
         <ItemFormModal
           brands={brands}
           subcategories={subcategories}
-          onClose={() => setShowAddModal(false)}
+          initialValues={addInitialValues ?? undefined}
+          onClose={() => {
+            setShowAddModal(false);
+            setAddInitialValues(null);
+          }}
           onSubmit={(values) =>
             addItem(selectedList.id, {
               ...values,
@@ -332,6 +355,7 @@ function App() {
           brands={brands}
           subcategories={subcategories}
           initialValues={editingItem}
+          isEditing
           onClose={() => setEditingItem(null)}
           onSubmit={(values) => updateItem(selectedList.id, editingItem.id, values)}
         />

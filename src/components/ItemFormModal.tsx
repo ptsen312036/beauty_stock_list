@@ -5,13 +5,19 @@ interface Props {
   brands: string[];
   subcategories: string[];
   initialValues?: ItemFormValues;
+  isEditing?: boolean;
   onClose: () => void;
   onSubmit: (values: ItemFormValues) => Promise<void>;
 }
 
-export function ItemFormModal({ brands, subcategories, initialValues, onClose, onSubmit }: Props) {
-  const isEditing = !!initialValues;
-
+export function ItemFormModal({
+  brands,
+  subcategories,
+  initialValues,
+  isEditing = false,
+  onClose,
+  onSubmit,
+}: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [ocrRunning, setOcrRunning] = useState(false);
