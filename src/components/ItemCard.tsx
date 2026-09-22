@@ -5,9 +5,10 @@ interface Props {
   item: StockItem;
   onToggleUsed: (used: boolean) => void;
   onDelete: () => void;
+  onEdit: () => void;
 }
 
-export function ItemCard({ item, onToggleUsed, onDelete }: Props) {
+export function ItemCard({ item, onToggleUsed, onDelete, onEdit }: Props) {
   const level = getExpiryLevel(item.expiryDate);
   const used = item.status === "used";
 
@@ -27,7 +28,7 @@ export function ItemCard({ item, onToggleUsed, onDelete }: Props) {
         {used && "✓"}
       </button>
 
-      <div className="min-w-0 flex-1">
+      <button onClick={onEdit} className="min-w-0 flex-1 text-left" aria-label="編輯品項">
         {item.brand && <p className="truncate text-xs text-gray-400">{item.brand}</p>}
         <p className={`truncate text-sm font-medium text-gray-900 ${used ? "line-through" : ""}`}>
           {item.name}
@@ -53,7 +54,7 @@ export function ItemCard({ item, onToggleUsed, onDelete }: Props) {
           )}
         </div>
         {item.note && <p className="mt-1 truncate text-xs text-gray-400">{item.note}</p>}
-      </div>
+      </button>
 
       <button
         aria-label="刪除"

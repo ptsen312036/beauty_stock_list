@@ -1,35 +1,29 @@
 import { useRef, useState } from "react";
-import { CATEGORIES, type Category, type StockItem } from "../types";
+import { CATEGORIES, type Category, type ItemFormValues } from "../types";
 
 interface Props {
-  addedByEmail: string;
-  addedByName: string;
   brands: string[];
   subcategories: string[];
+  initialValues?: ItemFormValues;
   onClose: () => void;
-  onSubmit: (item: Omit<StockItem, "id">) => Promise<void>;
+  onSubmit: (values: ItemFormValues) => Promise<void>;
 }
 
-export function AddItemModal({
-  addedByEmail,
-  addedByName,
-  brands,
-  subcategories,
-  onClose,
-  onSubmit,
-}: Props) {
+export function ItemFormModal({ brands, subcategories, initialValues, onClose, onSubmit }: Props) {
+  const isEditing = !!initialValues;
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [ocrRunning, setOcrRunning] = useState(false);
   const [ocrNotice, setOcrNotice] = useState<string | null>(null);
 
-  const [brand, setBrand] = useState("");
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState<Category>(CATEGORIES[0]);
-  const [subcategory, setSubcategory] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [note, setNote] = useState("");
+  const [brand, setBrand] = useState(initialValues?.brand ?? "");
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [category, setCategory] = useState<Category>(initialValues?.category ?? CATEGORIES[0]);
+  const [subcategory, setSubcategory] = useState(initialValues?.subcategory ?? "");
+  const [expiryDate, setExpiryDate] = useState(initialValues?.expiryDate ?? "");
+  const [quantity, setQuantity] = useState(initialValues?.quantity ?? 1);
+  const [note, setNote] = useState(initialValues?.note ?? "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -76,15 +70,10 @@ export function AddItemModal({
         expiryDate: expiryDate || null,
         quantity,
         note: note.trim(),
-        status: "active",
-        addedByEmail,
-        addedByName,
-        createdAt: Date.now(),
-        usedAt: null,
       });
       onClose();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "新增失敗，請再試一次");
+      setSaveError(err instanceof Error ? err.message : "儲存失敗，請再試一次");
     } finally {
       setSaving(false);
     }
@@ -94,7 +83,7 @@ export function AddItemModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
       <div className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">新增存貨</h2>
+          <h2 className="text-lg font-bold text-gray-900">{isEditing ? "編輯存貨" : "新增存貨"}</h2>
           <button onClick={onClose} className="text-gray-400" aria-label="關閉">
             ✕
           </button>
@@ -223,7 +212,7 @@ export function AddItemModal({
             disabled={saving || !name.trim()}
             className="mt-2 w-full rounded-xl bg-rose-600 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {saving ? "新增中…" : "新增到清單"}
+            {saving ? "儲存中…" : isEditing ? "儲存修改" : "新增到清單"}
           </button>
         </form>
       </div>

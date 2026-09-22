@@ -36,4 +36,9 @@ export interface StockItem {
   usedAt: number | null;
 }
 
+export type ItemFormValues = Pick<
+  StockItem,
+  "brand" | "name" | "category" | "subcategory" | "expiryDate" | "quantity" | "note"
+>;
+
 export type ExpiryLevel = "expired" | "soon" | "later" | "ok" | "none";

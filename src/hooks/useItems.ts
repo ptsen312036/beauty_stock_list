@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabase";
-import type { StockItem } from "../types";
+import type { ItemFormValues, StockItem } from "../types";
 
 interface ItemRow {
   id: string;
@@ -110,6 +110,23 @@ export function useItems(listId: string | null) {
     await loadRef.current();
   }
 
+  async function updateItem(_listId: string, itemId: string, values: ItemFormValues) {
+    const { error } = await supabase
+      .from("items")
+      .update({
+        brand: values.brand,
+        name: values.name,
+        category: values.category,
+        subcategory: values.subcategory,
+        expiry_date: values.expiryDate,
+        quantity: values.quantity,
+        note: values.note,
+      })
+      .eq("id", itemId);
+    if (error) throw new Error(error.message);
+    await loadRef.current();
+  }
+
   async function markUsed(_listId: string, itemId: string, used: boolean) {
     const { error } = await supabase
       .from("items")
@@ -128,5 +145,5 @@ export function useItems(listId: string | null) {
   const brands = useMemo(() => distinctValues(items, (i) => i.brand), [items]);
   const subcategories = useMemo(() => distinctValues(items, (i) => i.subcategory), [items]);
 
-  return { items, loading, addItem, markUsed, deleteItem, brands, subcategories };
+  return { items, loading, addItem, updateItem, markUsed, deleteItem, brands, subcategories };
 }

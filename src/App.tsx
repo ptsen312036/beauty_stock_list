@@ -4,9 +4,9 @@ import { useLists } from "./hooks/useLists";
 import { useItems } from "./hooks/useItems";
 import { Login } from "./components/Login";
 import { ItemCard } from "./components/ItemCard";
-import { AddItemModal } from "./components/AddItemModal";
+import { ItemFormModal } from "./components/ItemFormModal";
 import { ListsModal } from "./components/ListsModal";
-import { CATEGORIES, type Category } from "./types";
+import { CATEGORIES, type Category, type StockItem } from "./types";
 import { daysUntil } from "./lib/expiry";
 
 type FilterTab = "all" | "expired" | "soon";
@@ -40,9 +40,11 @@ function App() {
   }, [selectedListId]);
 
   const selectedList = lists.find((l) => l.id === selectedListId) ?? null;
-  const { items, addItem, markUsed, deleteItem, brands, subcategories } = useItems(selectedListId);
+  const { items, addItem, updateItem, markUsed, deleteItem, brands, subcategories } =
+    useItems(selectedListId);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [showListsModal, setShowListsModal] = useState(false);
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
@@ -197,6 +199,7 @@ function App() {
                         );
                       }
                     }}
+                    onEdit={() => setEditingItem(item)}
                   />
                 </li>
               ))}
@@ -219,13 +222,30 @@ function App() {
       )}
 
       {showAddModal && selectedList && (
-        <AddItemModal
-          addedByEmail={user.email ?? ""}
-          addedByName={displayName}
+        <ItemFormModal
           brands={brands}
           subcategories={subcategories}
           onClose={() => setShowAddModal(false)}
-          onSubmit={(item) => addItem(selectedList.id, item)}
+          onSubmit={(values) =>
+            addItem(selectedList.id, {
+              ...values,
+              status: "active",
+              addedByEmail: user.email ?? "",
+              addedByName: displayName,
+              createdAt: Date.now(),
+              usedAt: null,
+            })
+          }
+        />
+      )}
+
+      {editingItem && selectedList && (
+        <ItemFormModal
+          brands={brands}
+          subcategories={subcategories}
+          initialValues={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSubmit={(values) => updateItem(selectedList.id, editingItem.id, values)}
         />
       )}
 
