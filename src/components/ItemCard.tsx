@@ -51,6 +51,9 @@ export function ItemCard({ item, onToggleUsed, onDelete, onEdit }: Props) {
           )}
         </div>
         {item.note && <p className="mt-1 truncate text-xs text-gray-400">{item.note}</p>}
+        {used && item.usedByName && (
+          <p className="mt-1 truncate text-xs text-gray-400">由 {item.usedByName} 標記已使用</p>
+        )}
       </button>
 
       <button

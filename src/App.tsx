@@ -149,8 +149,8 @@ function App() {
 
   function handleToggleUsed(item: StockItem, used: boolean) {
     if (!selectedList) return;
-    markUsed(selectedList.id, item.id, used).catch((err) =>
-      alert(err instanceof Error ? err.message : "更新失敗，請再試一次"),
+    markUsed(selectedList.id, item.id, used, { email: userEmail ?? "", name: displayName }).catch(
+      (err) => alert(err instanceof Error ? err.message : "更新失敗，請再試一次"),
     );
   }
 
@@ -320,6 +320,8 @@ function App() {
               addedByName: displayName,
               createdAt: Date.now(),
               usedAt: null,
+              usedByEmail: null,
+              usedByName: null,
             })
           }
         />

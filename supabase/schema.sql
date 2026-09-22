@@ -31,7 +31,9 @@ create table if not exists items (
   added_by_email text not null,
   added_by_name text not null,
   created_at timestamptz not null default now(),
-  used_at timestamptz
+  used_at timestamptz,
+  used_by_email text,
+  used_by_name text
 );
 
 -- 舊資料庫已經有 items 表格時，補上這些欄位（新專案第一次跑 schema 不會受影響）。
@@ -41,6 +43,8 @@ alter table items add column if not exists brand text not null default '';
 alter table items add column if not exists subcategory text not null default '';
 alter table items add column if not exists package_type text not null default '正貨';
 alter table items add column if not exists capacity text not null default '';
+alter table items add column if not exists used_by_email text;
+alter table items add column if not exists used_by_name text;
 
 do $$
 begin

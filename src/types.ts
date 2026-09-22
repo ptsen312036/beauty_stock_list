@@ -39,6 +39,8 @@ export interface StockItem {
   addedByName: string;
   createdAt: number;
   usedAt: number | null;
+  usedByEmail: string | null;
+  usedByName: string | null;
 }
 
 export type ItemFormValues = Pick<

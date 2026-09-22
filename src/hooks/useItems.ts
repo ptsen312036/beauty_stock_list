@@ -18,6 +18,8 @@ interface ItemRow {
   added_by_name: string;
   created_at: string;
   used_at: string | null;
+  used_by_email: string | null;
+  used_by_name: string | null;
 }
 
 function mapRow(row: ItemRow): StockItem {
@@ -36,6 +38,8 @@ function mapRow(row: ItemRow): StockItem {
     addedByName: row.added_by_name,
     createdAt: new Date(row.created_at).getTime(),
     usedAt: row.used_at ? new Date(row.used_at).getTime() : null,
+    usedByEmail: row.used_by_email,
+    usedByName: row.used_by_name,
   };
 }
 
@@ -131,10 +135,20 @@ export function useItems(listId: string | null) {
     await loadRef.current();
   }
 
-  async function markUsed(_listId: string, itemId: string, used: boolean) {
+  async function markUsed(
+    _listId: string,
+    itemId: string,
+    used: boolean,
+    usedBy: { email: string; name: string },
+  ) {
     const { error } = await supabase
       .from("items")
-      .update({ status: used ? "used" : "active", used_at: used ? new Date().toISOString() : null })
+      .update({
+        status: used ? "used" : "active",
+        used_at: used ? new Date().toISOString() : null,
+        used_by_email: used ? usedBy.email : null,
+        used_by_name: used ? usedBy.name : null,
+      })
       .eq("id", itemId);
     if (error) throw new Error(error.message);
     await loadRef.current();
