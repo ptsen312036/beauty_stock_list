@@ -4,18 +4,29 @@ import { CATEGORIES, type Category, type StockItem } from "../types";
 interface Props {
   addedByEmail: string;
   addedByName: string;
+  brands: string[];
+  subcategories: string[];
   onClose: () => void;
   onSubmit: (item: Omit<StockItem, "id">) => Promise<void>;
 }
 
-export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: Props) {
+export function AddItemModal({
+  addedByEmail,
+  addedByName,
+  brands,
+  subcategories,
+  onClose,
+  onSubmit,
+}: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [ocrRunning, setOcrRunning] = useState(false);
   const [ocrNotice, setOcrNotice] = useState<string | null>(null);
 
+  const [brand, setBrand] = useState("");
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
+  const [subcategory, setSubcategory] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
@@ -58,8 +69,10 @@ export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: P
     setSaveError(null);
     try {
       await onSubmit({
+        brand: brand.trim(),
         name: name.trim(),
         category,
+        subcategory: subcategory.trim(),
         expiryDate: expiryDate || null,
         quantity,
         note: note.trim(),
@@ -114,6 +127,22 @@ export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: P
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">品牌（選填）</label>
+            <input
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              placeholder="例如：Chanel"
+              list="brand-options"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+            />
+            <datalist id="brand-options">
+              {brands.map((b) => (
+                <option key={b} value={b} />
+              ))}
+            </datalist>
+          </div>
+
+          <div>
             <label className="mb-1 block text-xs font-medium text-gray-500">品名</label>
             <input
               value={name}
@@ -140,15 +169,31 @@ export function AddItemModal({ addedByEmail, addedByName, onClose, onSubmit }: P
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">數量</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">子分類（選填）</label>
               <input
-                type="number"
-                min={1}
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                placeholder="例如：精華液"
+                list="subcategory-options"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
               />
+              <datalist id="subcategory-options">
+                {subcategories.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">數量</label>
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none"
+            />
           </div>
 
           <div>

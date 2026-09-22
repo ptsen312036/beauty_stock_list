@@ -18,8 +18,10 @@ create table if not exists list_members (
 create table if not exists items (
   id uuid primary key default gen_random_uuid(),
   list_id uuid not null references lists (id) on delete cascade,
+  brand text not null default '',
   name text not null,
   category text not null,
+  subcategory text not null default '',
   expiry_date date,
   quantity integer not null default 1,
   note text not null default '',
@@ -29,6 +31,10 @@ create table if not exists items (
   created_at timestamptz not null default now(),
   used_at timestamptz
 );
+
+-- 舊資料庫已經有 items 表格時，補上這兩欄（新專案第一次跑 schema 不會受影響）。
+alter table items add column if not exists brand text not null default '';
+alter table items add column if not exists subcategory text not null default '';
 
 -- 建立清單時，自動把擁有者加進 list_members，避免「先有雞先有蛋」的權限問題。
 create or replace function handle_new_list()

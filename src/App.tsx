@@ -40,7 +40,7 @@ function App() {
   }, [selectedListId]);
 
   const selectedList = lists.find((l) => l.id === selectedListId) ?? null;
-  const { items, addItem, markUsed, deleteItem } = useItems(selectedListId);
+  const { items, addItem, markUsed, deleteItem, brands, subcategories } = useItems(selectedListId);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showListsModal, setShowListsModal] = useState(false);
@@ -222,6 +222,8 @@ function App() {
         <AddItemModal
           addedByEmail={user.email ?? ""}
           addedByName={displayName}
+          brands={brands}
+          subcategories={subcategories}
           onClose={() => setShowAddModal(false)}
           onSubmit={(item) => addItem(selectedList.id, item)}
         />

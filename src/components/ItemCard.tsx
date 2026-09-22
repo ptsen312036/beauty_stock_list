@@ -28,6 +28,7 @@ export function ItemCard({ item, onToggleUsed, onDelete }: Props) {
       </button>
 
       <div className="min-w-0 flex-1">
+        {item.brand && <p className="truncate text-xs text-gray-400">{item.brand}</p>}
         <p className={`truncate text-sm font-medium text-gray-900 ${used ? "line-through" : ""}`}>
           {item.name}
         </p>
@@ -35,6 +36,11 @@ export function ItemCard({ item, onToggleUsed, onDelete }: Props) {
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
             {item.category}
           </span>
+          {item.subcategory && (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+              {item.subcategory}
+            </span>
+          )}
           {item.quantity > 1 && (
             <span className="text-xs text-gray-400">x{item.quantity}</span>
           )}

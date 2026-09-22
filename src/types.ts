@@ -22,8 +22,10 @@ export type ItemStatus = "active" | "used";
 
 export interface StockItem {
   id: string;
+  brand: string;
   name: string;
   category: Category;
+  subcategory: string;
   expiryDate: string | null; // ISO date string yyyy-mm-dd
   quantity: number;
   note: string;
