@@ -8,6 +8,10 @@ create table if not exists lists (
   created_at timestamptz not null default now()
 );
 
+-- 每個大分類底下，次分類卡片的自訂排序，例如 {"臉部保養": ["精華液", "乳液"]}。
+-- 沒被列進陣列的次分類（例如新出現的）就排在後面，由前端補上。
+alter table lists add column if not exists subcategory_order jsonb not null default '{}'::jsonb;
+
 create table if not exists list_members (
   list_id uuid not null references lists (id) on delete cascade,
   email text not null,

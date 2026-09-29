@@ -8,35 +8,55 @@ interface Props {
   onDelete: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-export function ItemCard({ item, onToggleUsed, onDelete, onEdit, onDuplicate }: Props) {
+export function ItemCard({
+  item,
+  onToggleUsed,
+  onDelete,
+  onEdit,
+  onDuplicate,
+  selectionMode = false,
+  selected = false,
+  onToggleSelect,
+}: Props) {
   const level = getExpiryLevel(item.expiryDate);
   const used = item.status === "used";
   const theme = CATEGORY_THEME[item.category];
 
   return (
     <div
-      className={`flex items-stretch gap-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow ${
-        used ? "opacity-60" : "hover:shadow-md"
-      }`}
+      className={`flex items-stretch gap-0 overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow ${
+        selected ? "border-rose-300 ring-2 ring-rose-100" : "border-gray-100"
+      } ${used ? "opacity-60" : selectionMode ? "" : "hover:shadow-md"}`}
     >
       <div className={`w-1.5 shrink-0 ${theme.accentBar}`} />
 
       <div className="flex flex-1 items-center gap-2.5 p-3">
         <button
-          aria-label={used ? "標記為未使用" : "標記為已使用"}
-          onClick={() => onToggleUsed(!used)}
+          aria-label={selectionMode ? (selected ? "取消選取" : "選取") : used ? "標記為未使用" : "標記為已使用"}
+          onClick={() => (selectionMode ? onToggleSelect?.() : onToggleUsed(!used))}
           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-            used
-              ? "border-rose-500 bg-rose-500 text-white"
-              : "border-gray-300 active:border-rose-400"
+            selectionMode
+              ? selected
+                ? "border-rose-500 bg-rose-500 text-white"
+                : "border-gray-300 active:border-rose-400"
+              : used
+                ? "border-rose-500 bg-rose-500 text-white"
+                : "border-gray-300 active:border-rose-400"
           }`}
         >
-          {used && "✓"}
+          {(selectionMode ? selected : used) && "✓"}
         </button>
 
-        <button onClick={onEdit} className="min-w-0 flex-1 text-left" aria-label="編輯品項">
+        <button
+          onClick={selectionMode ? onToggleSelect : onEdit}
+          className="min-w-0 flex-1 text-left"
+          aria-label={selectionMode ? "選取品項" : "編輯品項"}
+        >
           {item.brand && (
             <p className="truncate text-xs font-medium text-gray-400">{item.brand}</p>
           )}
@@ -70,21 +90,25 @@ export function ItemCard({ item, onToggleUsed, onDelete, onEdit, onDuplicate }: 
           )}
         </button>
 
-        <button
-          aria-label="複製新增"
-          onClick={onDuplicate}
-          className="shrink-0 rounded-full bg-gray-50 p-2 text-gray-400 active:bg-rose-50 active:text-rose-500"
-        >
-          +
-        </button>
+        {!selectionMode && (
+          <>
+            <button
+              aria-label="複製新增"
+              onClick={onDuplicate}
+              className="shrink-0 rounded-full bg-gray-50 p-2 text-gray-400 active:bg-rose-50 active:text-rose-500"
+            >
+              +
+            </button>
 
-        <button
-          aria-label="刪除"
-          onClick={onDelete}
-          className="shrink-0 rounded-full bg-gray-50 p-2 text-gray-400 active:bg-red-50 active:text-red-500"
-        >
-          🗑
-        </button>
+            <button
+              aria-label="刪除"
+              onClick={onDelete}
+              className="shrink-0 rounded-full bg-gray-50 p-2 text-gray-400 active:bg-red-50 active:text-red-500"
+            >
+              🗑
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ export interface StockList {
   ownerEmail: string;
   memberEmails: string[];
   createdAt: number;
+  subcategoryOrder: Record<string, string[]>;
 }
 
 export type ItemStatus = "active" | "used";

@@ -1,18 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useAuth } from "./hooks/useAuth";
 import { useLists } from "./hooks/useLists";
 import { useItems } from "./hooks/useItems";
 import { Login } from "./components/Login";
-import { SubcategoryCard } from "./components/SubcategoryCard";
+import { SortableSubcategoryCard } from "./components/SortableSubcategoryCard";
 import { ItemFormModal } from "./components/ItemFormModal";
 import { ListsModal } from "./components/ListsModal";
+import { MoveItemsModal } from "./components/MoveItemsModal";
 import { CATEGORIES, type Category, type ItemFormValues, type StockItem } from "./types";
 import { daysUntil } from "./lib/expiry";
 import { CATEGORY_THEME } from "./lib/categoryTheme";
 
 type FilterTab = "all" | "expired" | "soon";
+type SortMode = "custom" | "recent";
 
 const SELECTED_LIST_KEY = "beauty-stock-selected-list";
+const SORT_MODE_KEY = "beauty-stock-sort-mode";
 const UNCATEGORIZED_LABEL = "未分類";
 
 function compareByExpiry(a: StockItem, b: StockItem) {
@@ -29,7 +41,7 @@ interface SubcategoryGroup {
   key: string;
   label: string;
   items: StockItem[];
-  minDays: number | null;
+  maxCreatedAt: number;
 }
 
 interface CategoryGroup {
@@ -43,8 +55,15 @@ function App() {
   const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "匿名";
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
 
-  const { lists, loading: listsLoading, createList, addMember, removeMember, deleteList } =
-    useLists(userEmail);
+  const {
+    lists,
+    loading: listsLoading,
+    createList,
+    addMember,
+    removeMember,
+    deleteList,
+    updateSubcategoryOrder,
+  } = useLists(userEmail);
 
   const [selectedListId, setSelectedListId] = useState<string | null>(
     () => localStorage.getItem(SELECTED_LIST_KEY),
@@ -64,7 +83,7 @@ function App() {
   }, [selectedListId]);
 
   const selectedList = lists.find((l) => l.id === selectedListId) ?? null;
-  const { items, addItem, updateItem, markUsed, deleteItem, brands, subcategories } =
+  const { items, addItem, updateItem, markUsed, deleteItem, bulkMoveCategory, brands, subcategories } =
     useItems(selectedListId);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -75,6 +94,18 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [showUsed, setShowUsed] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [sortMode, setSortMode] = useState<SortMode>(
+    () => (localStorage.getItem(SORT_MODE_KEY) as SortMode | null) ?? "custom",
+  );
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [showMoveModal, setShowMoveModal] = useState(false);
+
+  const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  useEffect(() => {
+    localStorage.setItem(SORT_MODE_KEY, sortMode);
+  }, [sortMode]);
 
   const visibleItems = useMemo(() => {
     let list = items.filter((i) => (showUsed ? true : i.status === "active"));
@@ -97,7 +128,10 @@ function App() {
     return list;
   }, [items, categoryFilter, filterTab, showUsed]);
 
+  const subcategoryOrder = selectedList?.subcategoryOrder;
+
   const categoryGroups = useMemo<CategoryGroup[]>(() => {
+    const customOrder = subcategoryOrder ?? {};
     const byCategory = new Map<Category, StockItem[]>();
     for (const item of visibleItems) {
       const arr = byCategory.get(item.category) ?? [];
@@ -116,26 +150,29 @@ function App() {
 
       const subgroups: SubcategoryGroup[] = [...bySub.entries()].map(([key, subItems]) => {
         const sortedItems = [...subItems].sort(compareByExpiry);
-        const minDays = sortedItems.reduce<number | null>((min, item) => {
-          const d = daysUntil(item.expiryDate);
-          if (d === null) return min;
-          return min === null ? d : Math.min(min, d);
-        }, null);
-        return { key, label: key, items: sortedItems, minDays };
+        const maxCreatedAt = subItems.reduce((max, item) => Math.max(max, item.createdAt), 0);
+        return { key, label: key, items: sortedItems, maxCreatedAt };
       });
 
-      subgroups.sort((a, b) => {
-        if (a.minDays === null && b.minDays === null) {
+      if (sortMode === "recent") {
+        subgroups.sort((a, b) => b.maxCreatedAt - a.maxCreatedAt);
+      } else {
+        const orderIndex = new Map(
+          (customOrder[category] ?? []).map((key, idx) => [key, idx]),
+        );
+        subgroups.sort((a, b) => {
+          const ia = orderIndex.get(a.key);
+          const ib = orderIndex.get(b.key);
+          if (ia !== undefined && ib !== undefined) return ia - ib;
+          if (ia !== undefined) return -1;
+          if (ib !== undefined) return 1;
           return a.label.localeCompare(b.label, "zh-Hant");
-        }
-        if (a.minDays === null) return 1;
-        if (b.minDays === null) return -1;
-        return a.minDays - b.minDays;
-      });
+        });
+      }
 
       return { category, subgroups };
     });
-  }, [visibleItems]);
+  }, [visibleItems, sortMode, subcategoryOrder]);
 
   function toggleExpanded(key: string) {
     setExpandedKeys((prev) => {
@@ -173,10 +210,49 @@ function App() {
       subcategory: item.subcategory,
       packageType: item.packageType,
       capacity: item.capacity,
-      expiryDate: null,
+      expiryDate: item.expiryDate,
       note: "",
     });
     setShowAddModal(true);
+  }
+
+  function toggleMultiSelectMode() {
+    setMultiSelectMode((prev) => {
+      if (prev) setSelectedItemIds(new Set());
+      return !prev;
+    });
+  }
+
+  function toggleSelectItem(item: StockItem) {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.id)) {
+        next.delete(item.id);
+      } else {
+        next.add(item.id);
+      }
+      return next;
+    });
+  }
+
+  async function handleBulkMove(target: { category: Category; subcategory: string }) {
+    if (!selectedList) return;
+    await bulkMoveCategory(selectedList.id, [...selectedItemIds], target);
+    setSelectedItemIds(new Set());
+    setMultiSelectMode(false);
+  }
+
+  function handleSubcategoryDragEnd(category: Category, subgroupKeys: string[], event: DragEndEvent) {
+    if (!selectedList) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = subgroupKeys.indexOf(String(active.id));
+    const newIndex = subgroupKeys.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newOrder = arrayMove(subgroupKeys, oldIndex, newIndex);
+    updateSubcategoryOrder(selectedList.id, category, newOrder).catch((err) =>
+      alert(err instanceof Error ? err.message : "排序更新失敗，請再試一次"),
+    );
   }
 
   if (authLoading) {
@@ -276,49 +352,91 @@ function App() {
               ))}
             </div>
 
-            <div className="mt-2 flex justify-end">
-              <label className="flex items-center gap-1.5 text-xs text-gray-400">
-                <input
-                  type="checkbox"
-                  checked={showUsed}
-                  onChange={(e) => setShowUsed(e.target.checked)}
-                  className="accent-rose-600"
-                />
-                顯示已使用
-              </label>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1 rounded-full bg-gray-100 p-0.5 text-xs font-medium">
+                <button
+                  onClick={() => setSortMode("custom")}
+                  className={`rounded-full px-2.5 py-1 transition-colors ${
+                    sortMode === "custom" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400"
+                  }`}
+                >
+                  自訂順序
+                </button>
+                <button
+                  onClick={() => setSortMode("recent")}
+                  className={`rounded-full px-2.5 py-1 transition-colors ${
+                    sortMode === "recent" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400"
+                  }`}
+                >
+                  最新更新
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleMultiSelectMode}
+                  className={`text-xs font-medium ${multiSelectMode ? "text-rose-600" : "text-gray-400"}`}
+                >
+                  {multiSelectMode ? "取消多選" : "多選"}
+                </button>
+                <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={showUsed}
+                    onChange={(e) => setShowUsed(e.target.checked)}
+                    className="accent-rose-600"
+                  />
+                  顯示已使用
+                </label>
+              </div>
             </div>
 
             <div className="mt-2 space-y-4">
-              {categoryGroups.map(({ category, subgroups }) => (
-                <div key={category}>
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${CATEGORY_THEME[category].badge}`}
+              {categoryGroups.map(({ category, subgroups }) => {
+                const subgroupKeys = subgroups.map((g) => g.key);
+                return (
+                  <div key={category}>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${CATEGORY_THEME[category].badge}`}
+                      >
+                        {category}
+                      </span>
+                    </div>
+                    <DndContext
+                      sensors={dragSensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={(event) => handleSubcategoryDragEnd(category, subgroupKeys, event)}
                     >
-                      {category}
-                    </span>
+                      <SortableContext items={subgroupKeys} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-2">
+                          {subgroups.map(({ key, label, items: subItems }) => {
+                            const groupKey = `${category}::${key}`;
+                            return (
+                              <SortableSubcategoryCard
+                                key={groupKey}
+                                id={key}
+                                draggable={sortMode === "custom"}
+                                category={category}
+                                label={label}
+                                items={subItems}
+                                expanded={expandedKeys.has(groupKey)}
+                                onToggleExpand={() => toggleExpanded(groupKey)}
+                                onToggleUsed={handleToggleUsed}
+                                onDelete={handleDeleteItem}
+                                onEdit={setEditingItem}
+                                onDuplicate={handleDuplicate}
+                                selectionMode={multiSelectMode}
+                                selectedIds={selectedItemIds}
+                                onToggleSelect={toggleSelectItem}
+                              />
+                            );
+                          })}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                   </div>
-                  <div className="space-y-2">
-                    {subgroups.map(({ key, label, items: subItems }) => {
-                      const groupKey = `${category}::${key}`;
-                      return (
-                        <SubcategoryCard
-                          key={groupKey}
-                          category={category}
-                          label={label}
-                          items={subItems}
-                          expanded={expandedKeys.has(groupKey)}
-                          onToggleExpand={() => toggleExpanded(groupKey)}
-                          onToggleUsed={handleToggleUsed}
-                          onDelete={handleDeleteItem}
-                          onEdit={setEditingItem}
-                          onDuplicate={handleDuplicate}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {categoryGroups.length === 0 && (
                 <p className="py-12 text-center text-sm text-gray-400">這裡還沒有任何品項</p>
               )}
@@ -327,7 +445,7 @@ function App() {
         )}
       </main>
 
-      {selectedList && (
+      {selectedList && !multiSelectMode && (
         <button
           onClick={() => {
             setAddInitialValues(null);
@@ -338,6 +456,38 @@ function App() {
         >
           +
         </button>
+      )}
+
+      {multiSelectMode && (
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-100 bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur">
+          <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+            <span className="text-sm font-medium text-gray-600">已選 {selectedItemIds.size} 件</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMultiSelectMode}
+                className="rounded-full bg-gray-50 px-3.5 py-2 text-xs font-medium text-gray-500 active:bg-gray-100"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => setShowMoveModal(true)}
+                disabled={selectedItemIds.size === 0}
+                className="rounded-full bg-gradient-to-br from-rose-500 to-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-rose-600/20 disabled:opacity-40"
+              >
+                移動到…
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMoveModal && (
+        <MoveItemsModal
+          count={selectedItemIds.size}
+          subcategories={subcategories}
+          onClose={() => setShowMoveModal(false)}
+          onConfirm={handleBulkMove}
+        />
       )}
 
       {showAddModal && selectedList && (

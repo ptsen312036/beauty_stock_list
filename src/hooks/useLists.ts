@@ -7,6 +7,7 @@ interface ListRow {
   name: string;
   owner_email: string;
   created_at: string;
+  subcategory_order: Record<string, string[]> | null;
   list_members: { email: string }[];
 }
 
@@ -17,6 +18,7 @@ function mapRow(row: ListRow): StockList {
     ownerEmail: row.owner_email,
     memberEmails: row.list_members.map((m) => m.email),
     createdAt: new Date(row.created_at).getTime(),
+    subcategoryOrder: row.subcategory_order ?? {},
   };
 }
 
@@ -33,7 +35,7 @@ export function useLists(userEmail: string | null) {
     setLoading(true);
     const { data, error } = await supabase
       .from("lists")
-      .select("id, name, owner_email, created_at, list_members(email)")
+      .select("id, name, owner_email, created_at, subcategory_order, list_members(email)")
       .order("created_at", { ascending: true });
     if (!error && data) {
       setLists((data as unknown as ListRow[]).map(mapRow));
@@ -81,5 +83,30 @@ export function useLists(userEmail: string | null) {
     await refresh();
   }
 
-  return { lists, loading, createList, renameList, addMember, removeMember, deleteList };
+  async function updateSubcategoryOrder(listId: string, category: string, orderedKeys: string[]) {
+    const current = lists.find((l) => l.id === listId)?.subcategoryOrder ?? {};
+    const next = { ...current, [category]: orderedKeys };
+    setLists((prev) =>
+      prev.map((l) => (l.id === listId ? { ...l, subcategoryOrder: next } : l)),
+    );
+    const { error } = await supabase
+      .from("lists")
+      .update({ subcategory_order: next })
+      .eq("id", listId);
+    if (error) {
+      await refresh();
+      throw new Error(error.message);
+    }
+  }
+
+  return {
+    lists,
+    loading,
+    createList,
+    renameList,
+    addMember,
+    removeMember,
+    deleteList,
+    updateSubcategoryOrder,
+  };
 }
