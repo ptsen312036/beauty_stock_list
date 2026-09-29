@@ -19,7 +19,7 @@ interface Props {
 }
 
 function productKey(item: StockItem) {
-  return `${item.brand}|${item.name}|${item.packageType}|${item.capacity}`;
+  return `${item.brand}|${item.name}`;
 }
 
 export function SubcategoryCard({
