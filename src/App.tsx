@@ -83,8 +83,17 @@ function App() {
   }, [selectedListId]);
 
   const selectedList = lists.find((l) => l.id === selectedListId) ?? null;
-  const { items, addItem, updateItem, markUsed, deleteItem, bulkMoveCategory, brands, subcategories } =
-    useItems(selectedListId);
+  const {
+    items,
+    addItem,
+    updateItem,
+    markUsed,
+    deleteItem,
+    renameSubcategory,
+    bulkMoveCategory,
+    brands,
+    subcategories,
+  } = useItems(selectedListId);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addInitialValues, setAddInitialValues] = useState<ItemFormValues | null>(null);
@@ -240,6 +249,27 @@ function App() {
     await bulkMoveCategory(selectedList.id, [...selectedItemIds], target);
     setSelectedItemIds(new Set());
     setMultiSelectMode(false);
+  }
+
+  async function handleRenameSubcategory(category: Category, oldKey: string) {
+    if (!selectedList) return;
+    const oldSubcategory = oldKey === UNCATEGORIZED_LABEL ? "" : oldKey;
+    const input = prompt(`將「${oldKey}」重新命名為：`, oldSubcategory);
+    if (input === null) return;
+    const newSubcategory = input.trim();
+    if (newSubcategory === oldSubcategory) return;
+
+    try {
+      await renameSubcategory(selectedList.id, category, oldSubcategory, newSubcategory);
+      const newKey = newSubcategory || UNCATEGORIZED_LABEL;
+      const currentOrder = selectedList.subcategoryOrder[category] ?? [];
+      if (currentOrder.includes(oldKey)) {
+        const newOrder = currentOrder.map((k) => (k === oldKey ? newKey : k));
+        await updateSubcategoryOrder(selectedList.id, category, newOrder);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "重新命名失敗，請再試一次");
+    }
   }
 
   function handleSubcategoryDragEnd(category: Category, subgroupKeys: string[], event: DragEndEvent) {
@@ -425,6 +455,7 @@ function App() {
                                 onDelete={handleDeleteItem}
                                 onEdit={setEditingItem}
                                 onDuplicate={handleDuplicate}
+                                onRename={() => handleRenameSubcategory(category, key)}
                                 selectionMode={multiSelectMode}
                                 selectedIds={selectedItemIds}
                                 onToggleSelect={toggleSelectItem}

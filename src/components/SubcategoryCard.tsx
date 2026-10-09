@@ -12,6 +12,7 @@ interface Props {
   onDelete: (item: StockItem) => void;
   onEdit: (item: StockItem) => void;
   onDuplicate: (item: StockItem) => void;
+  onRename?: () => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (item: StockItem) => void;
@@ -32,6 +33,7 @@ export function SubcategoryCard({
   onDelete,
   onEdit,
   onDuplicate,
+  onRename,
   selectionMode = false,
   selectedIds,
   onToggleSelect,
@@ -80,6 +82,15 @@ export function SubcategoryCard({
             </span>
           </div>
         </button>
+        {onRename && !selectionMode && (
+          <button
+            onClick={onRename}
+            aria-label="重新命名次分類"
+            className="shrink-0 rounded-lg p-2 text-gray-300 active:bg-gray-50 active:text-gray-500"
+          >
+            ✎
+          </button>
+        )}
       </div>
 
       {showExpanded && (

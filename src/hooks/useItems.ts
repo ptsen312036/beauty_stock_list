@@ -160,6 +160,22 @@ export function useItems(listId: string | null) {
     await loadRef.current();
   }
 
+  async function renameSubcategory(
+    listId: string,
+    category: string,
+    oldSubcategory: string,
+    newSubcategory: string,
+  ) {
+    const { error } = await supabase
+      .from("items")
+      .update({ subcategory: newSubcategory })
+      .eq("list_id", listId)
+      .eq("category", category)
+      .eq("subcategory", oldSubcategory);
+    if (error) throw new Error(error.message);
+    await loadRef.current();
+  }
+
   async function bulkMoveCategory(
     _listId: string,
     itemIds: string[],
@@ -183,6 +199,7 @@ export function useItems(listId: string | null) {
     updateItem,
     markUsed,
     deleteItem,
+    renameSubcategory,
     bulkMoveCategory,
     brands,
     subcategories,

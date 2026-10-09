@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Category, StockItem } from "../types";
 import { CATEGORY_THEME } from "../lib/categoryTheme";
+import { EXPIRY_BADGE_CLASS, formatExpiryText, getExpiryLevel } from "../lib/expiry";
 import { ItemCard } from "./ItemCard";
 
 interface Props {
@@ -47,11 +48,11 @@ export function ProductGroupCard({
     />
   );
 
-  if (items.length === 1) {
-    return cardFor(items[0]);
-  }
-
   const expanded = forceExpanded || localExpanded;
+  // items is already sorted active-first-by-soonest-expiry, so the first active
+  // item is the one worth surfacing on the collapsed summary row.
+  const nearest = items.find((i) => i.status !== "used") ?? null;
+  const nearestLevel = nearest ? getExpiryLevel(nearest.expiryDate) : null;
 
   return (
     <div
@@ -67,11 +68,22 @@ export function ProductGroupCard({
         <span className="min-w-0 flex-1 truncate text-left text-sm font-medium text-gray-800">
           {label}
         </span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${theme.badge}`}>
+        {nearest && nearestLevel ? (
+          <span
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${EXPIRY_BADGE_CLASS[nearestLevel]}`}
+          >
+            {formatExpiryText(nearest.expiryDate)}
+          </span>
+        ) : (
+          <span className="shrink-0 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            已使用
+          </span>
+        )}
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${theme.badge}`}>
           {items.length} 件
         </span>
         <span
-          className={`text-gray-300 transition-transform duration-200 ${
+          className={`shrink-0 text-gray-300 transition-transform duration-200 ${
             expanded ? "rotate-180" : ""
           }`}
         >

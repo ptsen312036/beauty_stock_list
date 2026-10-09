@@ -14,6 +14,7 @@ interface Props {
   onDelete: (item: StockItem) => void;
   onEdit: (item: StockItem) => void;
   onDuplicate: (item: StockItem) => void;
+  onRename: () => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (item: StockItem) => void;
