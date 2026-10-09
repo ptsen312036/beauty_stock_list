@@ -128,7 +128,7 @@ function App() {
     } else if (filterTab === "soon") {
       list = list.filter((i) => {
         const d = daysUntil(i.expiryDate);
-        return d !== null && d >= 0 && d <= 30;
+        return d !== null && d >= 0 && d <= 90;
       });
     }
 
