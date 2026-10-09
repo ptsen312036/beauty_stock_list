@@ -12,11 +12,9 @@ interface Props {
   onDelete: (item: StockItem) => void;
   onEdit: (item: StockItem) => void;
   onDuplicate: (item: StockItem) => void;
-  onRename?: () => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (item: StockItem) => void;
-  dragHandle?: React.ReactNode;
 }
 
 function productKey(item: StockItem) {
@@ -33,11 +31,9 @@ export function SubcategoryCard({
   onDelete,
   onEdit,
   onDuplicate,
-  onRename,
   selectionMode = false,
   selectedIds,
   onToggleSelect,
-  dragHandle,
 }: Props) {
   const theme = CATEGORY_THEME[category];
 
@@ -62,36 +58,24 @@ export function SubcategoryCard({
         expanded ? "border-gray-200 shadow-md" : "border-gray-100"
       }`}
     >
-      <div className="flex w-full items-center gap-1 px-1.5 py-1.5">
-        {dragHandle}
-        <button
-          onClick={onToggleExpand}
-          className="flex flex-1 items-center justify-between rounded-xl px-2 py-1.5 active:bg-gray-50"
-        >
-          <span className="text-sm font-semibold text-gray-800">{label}</span>
-          <div className="flex items-center gap-2">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${theme.badge}`}>
-              {items.length}
-            </span>
-            <span
-              className={`text-gray-300 transition-transform duration-200 ${
-                showExpanded ? "rotate-180" : ""
-              }`}
-            >
-              ▾
-            </span>
-          </div>
-        </button>
-        {onRename && !selectionMode && (
-          <button
-            onClick={onRename}
-            aria-label="重新命名次分類"
-            className="shrink-0 rounded-lg p-2 text-gray-300 active:bg-gray-50 active:text-gray-500"
+      <button
+        onClick={onToggleExpand}
+        className="flex w-full items-center justify-between px-3.5 py-3 active:bg-gray-50"
+      >
+        <span className="text-sm font-semibold text-gray-800">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${theme.badge}`}>
+            {items.length}
+          </span>
+          <span
+            className={`text-gray-300 transition-transform duration-200 ${
+              showExpanded ? "rotate-180" : ""
+            }`}
           >
-            ✎
-          </button>
-        )}
-      </div>
+            ▾
+          </span>
+        </div>
+      </button>
 
       {showExpanded && (
         <ul className="space-y-2 border-t border-gray-100 bg-gray-50/50 p-2.5">

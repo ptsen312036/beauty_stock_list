@@ -1,18 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useAuth } from "./hooks/useAuth";
 import { useLists } from "./hooks/useLists";
 import { useItems } from "./hooks/useItems";
 import { Login } from "./components/Login";
-import { SortableSubcategoryCard } from "./components/SortableSubcategoryCard";
+import { SubcategoryCard } from "./components/SubcategoryCard";
 import { ItemFormModal } from "./components/ItemFormModal";
 import { ListsModal } from "./components/ListsModal";
 import { MoveItemsModal } from "./components/MoveItemsModal";
@@ -51,9 +42,8 @@ interface CategoryGroup {
 }
 
 type MoveTarget =
-  | { kind: "selection" }
-  | { kind: "subcategory"; category: Category; subcategoryKey: string }
-  | { kind: "item"; item: StockItem };
+  | { kind: "items"; items: StockItem[] }
+  | { kind: "subcategory"; category: Category; subcategoryKey: string };
 
 function App() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
@@ -119,8 +109,6 @@ function App() {
   const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
   const [usedToast, setUsedToast] = useState<StockItem | null>(null);
   const usedToastTimerRef = useRef<number | null>(null);
-
-  const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
     localStorage.setItem(SORT_MODE_KEY, sortMode);
@@ -275,15 +263,14 @@ function App() {
   async function handleMoveConfirm(target: { category: Category; subcategory: string }) {
     if (!selectedList || !moveTarget) return;
 
-    if (moveTarget.kind === "selection") {
-      await bulkMoveCategory(selectedList.id, [...selectedItemIds], target);
+    if (moveTarget.kind === "items") {
+      await bulkMoveCategory(
+        selectedList.id,
+        moveTarget.items.map((i) => i.id),
+        target,
+      );
       setSelectedItemIds(new Set());
       setMultiSelectMode(false);
-      return;
-    }
-
-    if (moveTarget.kind === "item") {
-      await bulkMoveCategory(selectedList.id, [moveTarget.item.id], target);
       return;
     }
 
@@ -303,8 +290,7 @@ function App() {
 
   function moveTargetCount() {
     if (!moveTarget) return 0;
-    if (moveTarget.kind === "selection") return selectedItemIds.size;
-    if (moveTarget.kind === "item") return 1;
+    if (moveTarget.kind === "items") return moveTarget.items.length;
     return items.filter(
       (i) =>
         i.category === moveTarget.category &&
@@ -333,14 +319,8 @@ function App() {
     }
   }
 
-  function handleSubcategoryDragEnd(category: Category, subgroupKeys: string[], event: DragEndEvent) {
+  function handleReorderSubcategories(category: Category, newOrder: string[]) {
     if (!selectedList) return;
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = subgroupKeys.indexOf(String(active.id));
-    const newIndex = subgroupKeys.indexOf(String(over.id));
-    if (oldIndex === -1 || newIndex === -1) return;
-    const newOrder = arrayMove(subgroupKeys, oldIndex, newIndex);
     updateSubcategoryOrder(selectedList.id, category, newOrder).catch((err) =>
       alert(err instanceof Error ? err.message : "排序更新失敗，請再試一次"),
     );
@@ -452,92 +432,58 @@ function App() {
               ))}
             </div>
 
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1 rounded-full bg-gray-100 p-0.5 text-xs font-medium">
-                <button
-                  onClick={() => setSortMode("custom")}
-                  className={`rounded-full px-2.5 py-1 transition-colors ${
-                    sortMode === "custom" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400"
-                  }`}
-                >
-                  自訂順序
-                </button>
-                <button
-                  onClick={() => setSortMode("recent")}
-                  className={`rounded-full px-2.5 py-1 transition-colors ${
-                    sortMode === "recent" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400"
-                  }`}
-                >
-                  最新更新
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={toggleMultiSelectMode}
-                  className={`text-xs font-medium ${multiSelectMode ? "text-rose-600" : "text-gray-400"}`}
-                >
-                  {multiSelectMode ? "取消多選" : "多選"}
-                </button>
-                <label className="flex items-center gap-1.5 text-xs text-gray-400">
-                  <input
-                    type="checkbox"
-                    checked={showUsed}
-                    onChange={(e) => setShowUsed(e.target.checked)}
-                    className="accent-rose-600"
-                  />
-                  顯示已使用
-                </label>
-              </div>
+            <div className="mt-2 flex items-center justify-end gap-3">
+              <button
+                onClick={toggleMultiSelectMode}
+                className={`text-xs font-medium ${multiSelectMode ? "text-rose-600" : "text-gray-400"}`}
+              >
+                {multiSelectMode ? "取消多選" : "多選"}
+              </button>
+              <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={showUsed}
+                  onChange={(e) => setShowUsed(e.target.checked)}
+                  className="accent-rose-600"
+                />
+                顯示已使用
+              </label>
             </div>
 
             <div className="mt-2 space-y-4">
-              {categoryGroups.map(({ category, subgroups }) => {
-                const subgroupKeys = subgroups.map((g) => g.key);
-                return (
-                  <div key={category}>
-                    <div className="mb-1.5 flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${CATEGORY_THEME[category].badge}`}
-                      >
-                        {category}
-                      </span>
-                    </div>
-                    <DndContext
-                      sensors={dragSensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={(event) => handleSubcategoryDragEnd(category, subgroupKeys, event)}
+              {categoryGroups.map(({ category, subgroups }) => (
+                <div key={category}>
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${CATEGORY_THEME[category].badge}`}
                     >
-                      <SortableContext items={subgroupKeys} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-2">
-                          {subgroups.map(({ key, label, items: subItems }) => {
-                            const groupKey = `${category}::${key}`;
-                            return (
-                              <SortableSubcategoryCard
-                                key={groupKey}
-                                id={key}
-                                draggable={sortMode === "custom"}
-                                category={category}
-                                label={label}
-                                items={subItems}
-                                expanded={expandedKeys.has(groupKey)}
-                                onToggleExpand={() => toggleExpanded(groupKey)}
-                                onToggleUsed={handleToggleUsed}
-                                onDelete={handleDeleteItem}
-                                onEdit={setEditingItem}
-                                onDuplicate={handleDuplicate}
-                                onRename={() => handleRenameSubcategory(category, key)}
-                                selectionMode={multiSelectMode}
-                                selectedIds={selectedItemIds}
-                                onToggleSelect={toggleSelectItem}
-                              />
-                            );
-                          })}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
+                      {category}
+                    </span>
                   </div>
-                );
-              })}
+                  <div className="space-y-2">
+                    {subgroups.map(({ key, label, items: subItems }) => {
+                      const groupKey = `${category}::${key}`;
+                      return (
+                        <SubcategoryCard
+                          key={groupKey}
+                          category={category}
+                          label={label}
+                          items={subItems}
+                          expanded={expandedKeys.has(groupKey)}
+                          onToggleExpand={() => toggleExpanded(groupKey)}
+                          onToggleUsed={handleToggleUsed}
+                          onDelete={handleDeleteItem}
+                          onEdit={setEditingItem}
+                          onDuplicate={handleDuplicate}
+                          selectionMode={multiSelectMode}
+                          selectedIds={selectedItemIds}
+                          onToggleSelect={toggleSelectItem}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
               {categoryGroups.length === 0 && (
                 <p className="py-12 text-center text-sm text-gray-400">這裡還沒有任何品項</p>
               )}
@@ -585,7 +531,12 @@ function App() {
                 取消
               </button>
               <button
-                onClick={() => setMoveTarget({ kind: "selection" })}
+                onClick={() =>
+                  setMoveTarget({
+                    kind: "items",
+                    items: items.filter((i) => selectedItemIds.has(i.id)),
+                  })
+                }
                 disabled={selectedItemIds.size === 0}
                 className="rounded-full bg-gradient-to-br from-rose-500 to-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-rose-600/20 disabled:opacity-40"
               >
@@ -601,13 +552,15 @@ function App() {
           count={moveTargetCount()}
           subcategories={subcategories}
           initialCategory={
-            moveTarget.kind === "item"
-              ? moveTarget.item.category
+            moveTarget.kind === "items"
+              ? moveTarget.items[0]?.category
               : moveTarget.kind === "subcategory"
                 ? moveTarget.category
                 : undefined
           }
-          initialSubcategory={moveTarget.kind === "item" ? moveTarget.item.subcategory : undefined}
+          initialSubcategory={
+            moveTarget.kind === "items" ? moveTarget.items[0]?.subcategory : undefined
+          }
           onClose={() => setMoveTarget(null)}
           onConfirm={handleMoveConfirm}
         />
@@ -668,17 +621,21 @@ function App() {
         />
       )}
 
-      {showCategorySettings && (
+      {showCategorySettings && selectedList && (
         <CategorySettingsModal
           items={items}
+          sortMode={sortMode}
+          onSortModeChange={setSortMode}
+          subcategoryOrder={selectedList.subcategoryOrder}
+          onReorderSubcategories={handleReorderSubcategories}
           onRenameSubcategory={handleRenameSubcategory}
           onMoveSubcategory={(category, subcategoryKey) => {
             setShowCategorySettings(false);
             setMoveTarget({ kind: "subcategory", category, subcategoryKey });
           }}
-          onMoveItem={(item) => {
+          onMoveProduct={(productItems) => {
             setShowCategorySettings(false);
-            setMoveTarget({ kind: "item", item });
+            setMoveTarget({ kind: "items", items: productItems });
           }}
           onClose={() => setShowCategorySettings(false)}
         />
