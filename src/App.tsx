@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -16,6 +16,7 @@ import { SortableSubcategoryCard } from "./components/SortableSubcategoryCard";
 import { ItemFormModal } from "./components/ItemFormModal";
 import { ListsModal } from "./components/ListsModal";
 import { MoveItemsModal } from "./components/MoveItemsModal";
+import { CategorySettingsModal } from "./components/CategorySettingsModal";
 import { CATEGORIES, type Category, type ItemFormValues, type StockItem } from "./types";
 import { daysUntil } from "./lib/expiry";
 import { CATEGORY_THEME } from "./lib/categoryTheme";
@@ -99,6 +100,7 @@ function App() {
   const [addInitialValues, setAddInitialValues] = useState<ItemFormValues | null>(null);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [showListsModal, setShowListsModal] = useState(false);
+  const [showCategorySettings, setShowCategorySettings] = useState(false);
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [showUsed, setShowUsed] = useState(false);
@@ -109,12 +111,31 @@ function App() {
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [usedToast, setUsedToast] = useState<StockItem | null>(null);
+  const usedToastTimerRef = useRef<number | null>(null);
 
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
     localStorage.setItem(SORT_MODE_KEY, sortMode);
   }, [sortMode]);
+
+  const subcategoriesByCategory = useMemo(() => {
+    const byCategory = new Map<Category, Set<string>>();
+    for (const item of items) {
+      const set = byCategory.get(item.category) ?? new Set<string>();
+      set.add(item.subcategory || UNCATEGORIZED_LABEL);
+      byCategory.set(item.category, set);
+    }
+    const result: Partial<Record<Category, string[]>> = {};
+    for (const category of CATEGORIES) {
+      const keys = byCategory.get(category);
+      if (keys) {
+        result[category] = [...keys].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+      }
+    }
+    return result;
+  }, [items]);
 
   const visibleItems = useMemo(() => {
     let list = items.filter((i) => (showUsed ? true : i.status === "active"));
@@ -197,8 +218,26 @@ function App() {
 
   function handleToggleUsed(item: StockItem, used: boolean) {
     if (!selectedList) return;
-    markUsed(selectedList.id, item.id, used, { email: userEmail ?? "", name: displayName }).catch(
-      (err) => alert(err instanceof Error ? err.message : "更新失敗，請再試一次"),
+    markUsed(selectedList.id, item.id, used, { email: userEmail ?? "", name: displayName })
+      .then(() => {
+        if (usedToastTimerRef.current) window.clearTimeout(usedToastTimerRef.current);
+        if (used) {
+          setUsedToast(item);
+          usedToastTimerRef.current = window.setTimeout(() => setUsedToast(null), 4000);
+        } else if (usedToast?.id === item.id) {
+          setUsedToast(null);
+        }
+      })
+      .catch((err) => alert(err instanceof Error ? err.message : "更新失敗，請再試一次"));
+  }
+
+  function handleUndoUsed() {
+    if (!selectedList || !usedToast) return;
+    if (usedToastTimerRef.current) window.clearTimeout(usedToastTimerRef.current);
+    const item = usedToast;
+    setUsedToast(null);
+    markUsed(selectedList.id, item.id, false, { email: userEmail ?? "", name: displayName }).catch(
+      (err) => alert(err instanceof Error ? err.message : "復原失敗，請再試一次"),
     );
   }
 
@@ -307,6 +346,15 @@ function App() {
             <span className="text-xs font-medium text-rose-400">切換 / 管理清單 ▾</span>
           </button>
           <div className="flex items-center gap-2.5">
+            {selectedList && (
+              <button
+                onClick={() => setShowCategorySettings(true)}
+                aria-label="類別設定"
+                className="rounded-full bg-gray-50 px-2.5 py-1.5 text-sm text-gray-400 active:bg-gray-100"
+              >
+                ⚙️
+              </button>
+            )}
             {avatarUrl && (
               <img
                 src={avatarUrl}
@@ -489,6 +537,20 @@ function App() {
         </button>
       )}
 
+      {usedToast && !multiSelectMode && (
+        <div className="fixed inset-x-0 bottom-24 z-20 flex justify-center px-4">
+          <div className="flex max-w-md items-center gap-3 rounded-full bg-gray-900/90 py-2.5 pl-4 pr-2 text-sm text-white shadow-lg backdrop-blur">
+            <span className="truncate">已將「{usedToast.name}」標記為已使用</span>
+            <button
+              onClick={handleUndoUsed}
+              className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold active:bg-white/25"
+            >
+              復原
+            </button>
+          </div>
+        </div>
+      )}
+
       {multiSelectMode && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-100 bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur">
           <div className="mx-auto flex max-w-md items-center justify-between gap-3">
@@ -573,6 +635,14 @@ function App() {
             await deleteList(id);
             if (selectedListId === id) setSelectedListId(null);
           }}
+        />
+      )}
+
+      {showCategorySettings && (
+        <CategorySettingsModal
+          subcategoriesByCategory={subcategoriesByCategory}
+          onRenameSubcategory={handleRenameSubcategory}
+          onClose={() => setShowCategorySettings(false)}
         />
       )}
     </div>
