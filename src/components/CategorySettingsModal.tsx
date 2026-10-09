@@ -4,12 +4,14 @@ import { CATEGORY_THEME } from "../lib/categoryTheme";
 interface Props {
   subcategoriesByCategory: Partial<Record<Category, string[]>>;
   onRenameSubcategory: (category: Category, oldKey: string) => void;
+  onMoveSubcategory: (category: Category, oldKey: string) => void;
   onClose: () => void;
 }
 
 export function CategorySettingsModal({
   subcategoriesByCategory,
   onRenameSubcategory,
+  onMoveSubcategory,
   onClose,
 }: Props) {
   return (
@@ -26,7 +28,8 @@ export function CategorySettingsModal({
           </button>
         </div>
         <p className="mb-4 text-xs text-gray-400">
-          這裡列出每個大分類底下目前有品項的子分類，點 ✎ 可以直接重新命名，底下所有品項會一起改名。
+          這裡列出每個大分類底下目前有品項的子分類。✎ 重新命名只改名字，⇄
+          搬移可以把底下所有品項整組換到別的大分類／子分類。
         </p>
 
         <div className="space-y-4">
@@ -48,13 +51,22 @@ export function CategorySettingsModal({
                         className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2"
                       >
                         <span className="truncate text-sm text-gray-700">{sub}</span>
-                        <button
-                          onClick={() => onRenameSubcategory(category, sub)}
-                          aria-label={`重新命名「${sub}」`}
-                          className="shrink-0 rounded-lg px-2 py-1 text-gray-400 active:bg-gray-100 active:text-gray-600"
-                        >
-                          ✎
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            onClick={() => onMoveSubcategory(category, sub)}
+                            aria-label={`搬移「${sub}」底下的品項`}
+                            className="rounded-lg px-2 py-1 text-gray-400 active:bg-gray-100 active:text-gray-600"
+                          >
+                            ⇄
+                          </button>
+                          <button
+                            onClick={() => onRenameSubcategory(category, sub)}
+                            aria-label={`重新命名「${sub}」`}
+                            className="rounded-lg px-2 py-1 text-gray-400 active:bg-gray-100 active:text-gray-600"
+                          >
+                            ✎
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>

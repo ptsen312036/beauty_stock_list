@@ -189,6 +189,22 @@ export function useItems(listId: string | null) {
     await loadRef.current();
   }
 
+  async function moveSubcategoryItems(
+    listId: string,
+    fromCategory: string,
+    fromSubcategory: string,
+    target: { category: string; subcategory: string },
+  ) {
+    const { error } = await supabase
+      .from("items")
+      .update({ category: target.category, subcategory: target.subcategory })
+      .eq("list_id", listId)
+      .eq("category", fromCategory)
+      .eq("subcategory", fromSubcategory);
+    if (error) throw new Error(error.message);
+    await loadRef.current();
+  }
+
   const brands = useMemo(() => distinctValues(items, (i) => i.brand), [items]);
   const subcategories = useMemo(() => distinctValues(items, (i) => i.subcategory), [items]);
 
@@ -201,6 +217,7 @@ export function useItems(listId: string | null) {
     deleteItem,
     renameSubcategory,
     bulkMoveCategory,
+    moveSubcategoryItems,
     brands,
     subcategories,
   };

@@ -92,6 +92,7 @@ function App() {
     deleteItem,
     renameSubcategory,
     bulkMoveCategory,
+    moveSubcategoryItems,
     brands,
     subcategories,
   } = useItems(selectedListId);
@@ -110,7 +111,9 @@ function App() {
   );
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
-  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [moveTarget, setMoveTarget] = useState<
+    "selection" | { category: Category; subcategoryKey: string } | null
+  >(null);
   const [usedToast, setUsedToast] = useState<StockItem | null>(null);
   const usedToastTimerRef = useRef<number | null>(null);
 
@@ -283,11 +286,38 @@ function App() {
     });
   }
 
-  async function handleBulkMove(target: { category: Category; subcategory: string }) {
-    if (!selectedList) return;
-    await bulkMoveCategory(selectedList.id, [...selectedItemIds], target);
-    setSelectedItemIds(new Set());
-    setMultiSelectMode(false);
+  async function handleMoveConfirm(target: { category: Category; subcategory: string }) {
+    if (!selectedList || !moveTarget) return;
+
+    if (moveTarget === "selection") {
+      await bulkMoveCategory(selectedList.id, [...selectedItemIds], target);
+      setSelectedItemIds(new Set());
+      setMultiSelectMode(false);
+      return;
+    }
+
+    const { category: fromCategory, subcategoryKey } = moveTarget;
+    const fromSubcategory = subcategoryKey === UNCATEGORIZED_LABEL ? "" : subcategoryKey;
+    await moveSubcategoryItems(selectedList.id, fromCategory, fromSubcategory, target);
+
+    const currentOrder = selectedList.subcategoryOrder[fromCategory] ?? [];
+    if (currentOrder.includes(subcategoryKey)) {
+      await updateSubcategoryOrder(
+        selectedList.id,
+        fromCategory,
+        currentOrder.filter((k) => k !== subcategoryKey),
+      );
+    }
+  }
+
+  function moveTargetCount() {
+    if (moveTarget === "selection") return selectedItemIds.size;
+    if (!moveTarget) return 0;
+    return items.filter(
+      (i) =>
+        i.category === moveTarget.category &&
+        (i.subcategory || UNCATEGORIZED_LABEL) === moveTarget.subcategoryKey,
+    ).length;
   }
 
   async function handleRenameSubcategory(category: Category, oldKey: string) {
@@ -563,7 +593,7 @@ function App() {
                 取消
               </button>
               <button
-                onClick={() => setShowMoveModal(true)}
+                onClick={() => setMoveTarget("selection")}
                 disabled={selectedItemIds.size === 0}
                 className="rounded-full bg-gradient-to-br from-rose-500 to-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-rose-600/20 disabled:opacity-40"
               >
@@ -574,12 +604,12 @@ function App() {
         </div>
       )}
 
-      {showMoveModal && (
+      {moveTarget && (
         <MoveItemsModal
-          count={selectedItemIds.size}
+          count={moveTargetCount()}
           subcategories={subcategories}
-          onClose={() => setShowMoveModal(false)}
-          onConfirm={handleBulkMove}
+          onClose={() => setMoveTarget(null)}
+          onConfirm={handleMoveConfirm}
         />
       )}
 
@@ -642,6 +672,10 @@ function App() {
         <CategorySettingsModal
           subcategoriesByCategory={subcategoriesByCategory}
           onRenameSubcategory={handleRenameSubcategory}
+          onMoveSubcategory={(category, subcategoryKey) => {
+            setShowCategorySettings(false);
+            setMoveTarget({ category, subcategoryKey });
+          }}
           onClose={() => setShowCategorySettings(false)}
         />
       )}
