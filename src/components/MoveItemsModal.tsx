@@ -4,13 +4,22 @@ import { CATEGORIES, type Category } from "../types";
 interface Props {
   count: number;
   subcategories: string[];
+  initialCategory?: Category;
+  initialSubcategory?: string;
   onClose: () => void;
   onConfirm: (target: { category: Category; subcategory: string }) => Promise<void>;
 }
 
-export function MoveItemsModal({ count, subcategories, onClose, onConfirm }: Props) {
-  const [category, setCategory] = useState<Category>(CATEGORIES[0]);
-  const [subcategory, setSubcategory] = useState("");
+export function MoveItemsModal({
+  count,
+  subcategories,
+  initialCategory,
+  initialSubcategory,
+  onClose,
+  onConfirm,
+}: Props) {
+  const [category, setCategory] = useState<Category>(initialCategory ?? CATEGORIES[0]);
+  const [subcategory, setSubcategory] = useState(initialSubcategory ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

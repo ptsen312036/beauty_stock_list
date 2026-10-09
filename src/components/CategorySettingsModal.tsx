@@ -1,19 +1,46 @@
-import { CATEGORIES, type Category } from "../types";
+import { CATEGORIES, type Category, type StockItem } from "../types";
 import { CATEGORY_THEME } from "../lib/categoryTheme";
 
+const UNCATEGORIZED_LABEL = "未分類";
+
 interface Props {
-  subcategoriesByCategory: Partial<Record<Category, string[]>>;
+  items: StockItem[];
   onRenameSubcategory: (category: Category, oldKey: string) => void;
   onMoveSubcategory: (category: Category, oldKey: string) => void;
+  onMoveItem: (item: StockItem) => void;
   onClose: () => void;
 }
 
+interface SubcategoryBucket {
+  key: string;
+  items: StockItem[];
+}
+
 export function CategorySettingsModal({
-  subcategoriesByCategory,
+  items,
   onRenameSubcategory,
   onMoveSubcategory,
+  onMoveItem,
   onClose,
 }: Props) {
+  const byCategory = new Map<Category, Map<string, StockItem[]>>();
+  for (const item of items) {
+    const bySub = byCategory.get(item.category) ?? new Map<string, StockItem[]>();
+    const key = item.subcategory || UNCATEGORIZED_LABEL;
+    const arr = bySub.get(key) ?? [];
+    arr.push(item);
+    bySub.set(key, arr);
+    byCategory.set(item.category, bySub);
+  }
+
+  function bucketsFor(category: Category): SubcategoryBucket[] {
+    const bySub = byCategory.get(category);
+    if (!bySub) return [];
+    return [...bySub.entries()]
+      .map(([key, subItems]) => ({ key, items: subItems }))
+      .sort((a, b) => a.key.localeCompare(b.key, "zh-Hant"));
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
       <div className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl">
@@ -28,13 +55,13 @@ export function CategorySettingsModal({
           </button>
         </div>
         <p className="mb-4 text-xs text-gray-400">
-          這裡列出每個大分類底下目前有品項的子分類。✎ 重新命名只改名字，⇄
-          搬移可以把底下所有品項整組換到別的大分類／子分類。
+          點品項旁的 ⇄ 可以單獨把那一件換到別的分類；次分類旁的 ⇄
+          會把底下所有品項整組換過去，✎ 只改次分類的名字。
         </p>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           {CATEGORIES.map((category) => {
-            const subcategories = subcategoriesByCategory[category];
+            const buckets = bucketsFor(category);
             const theme = CATEGORY_THEME[category];
             return (
               <div key={category}>
@@ -43,33 +70,56 @@ export function CategorySettingsModal({
                 >
                   {category}
                 </span>
-                {subcategories ? (
-                  <ul className="mt-2 space-y-1.5">
-                    {subcategories.map((sub) => (
-                      <li
-                        key={sub}
-                        className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2"
-                      >
-                        <span className="truncate text-sm text-gray-700">{sub}</span>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            onClick={() => onMoveSubcategory(category, sub)}
-                            aria-label={`搬移「${sub}」底下的品項`}
-                            className="rounded-lg px-2 py-1 text-gray-400 active:bg-gray-100 active:text-gray-600"
-                          >
-                            ⇄
-                          </button>
-                          <button
-                            onClick={() => onRenameSubcategory(category, sub)}
-                            aria-label={`重新命名「${sub}」`}
-                            className="rounded-lg px-2 py-1 text-gray-400 active:bg-gray-100 active:text-gray-600"
-                          >
-                            ✎
-                          </button>
+                {buckets.length > 0 ? (
+                  <div className="mt-2 space-y-3">
+                    {buckets.map((bucket) => (
+                      <div key={bucket.key} className="rounded-xl bg-gray-50 p-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="truncate text-xs font-semibold text-gray-600">
+                            {bucket.key}
+                          </span>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button
+                              onClick={() => onMoveSubcategory(category, bucket.key)}
+                              aria-label={`搬移「${bucket.key}」底下的品項`}
+                              className="rounded-lg px-1.5 py-0.5 text-gray-400 active:bg-gray-200 active:text-gray-600"
+                            >
+                              ⇄
+                            </button>
+                            <button
+                              onClick={() => onRenameSubcategory(category, bucket.key)}
+                              aria-label={`重新命名「${bucket.key}」`}
+                              className="rounded-lg px-1.5 py-0.5 text-gray-400 active:bg-gray-200 active:text-gray-600"
+                            >
+                              ✎
+                            </button>
+                          </div>
                         </div>
-                      </li>
+                        <ul className="mt-1.5 space-y-1">
+                          {bucket.items.map((item) => (
+                            <li
+                              key={item.id}
+                              className="flex items-center justify-between rounded-lg bg-white px-2.5 py-1.5"
+                            >
+                              <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
+                                {item.brand && (
+                                  <span className="text-gray-400">{item.brand} · </span>
+                                )}
+                                {item.name}
+                              </span>
+                              <button
+                                onClick={() => onMoveItem(item)}
+                                aria-label={`搬移「${item.name}」`}
+                                className="shrink-0 rounded-lg px-2 py-0.5 text-gray-400 active:bg-gray-100 active:text-gray-600"
+                              >
+                                ⇄
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <p className="mt-2 text-xs text-gray-300">目前沒有品項</p>
                 )}

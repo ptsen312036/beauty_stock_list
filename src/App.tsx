@@ -50,6 +50,11 @@ interface CategoryGroup {
   subgroups: SubcategoryGroup[];
 }
 
+type MoveTarget =
+  | { kind: "selection" }
+  | { kind: "subcategory"; category: Category; subcategoryKey: string }
+  | { kind: "item"; item: StockItem };
+
 function App() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
   const userEmail = user?.email ?? null;
@@ -111,9 +116,7 @@ function App() {
   );
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
-  const [moveTarget, setMoveTarget] = useState<
-    "selection" | { category: Category; subcategoryKey: string } | null
-  >(null);
+  const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
   const [usedToast, setUsedToast] = useState<StockItem | null>(null);
   const usedToastTimerRef = useRef<number | null>(null);
 
@@ -122,23 +125,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem(SORT_MODE_KEY, sortMode);
   }, [sortMode]);
-
-  const subcategoriesByCategory = useMemo(() => {
-    const byCategory = new Map<Category, Set<string>>();
-    for (const item of items) {
-      const set = byCategory.get(item.category) ?? new Set<string>();
-      set.add(item.subcategory || UNCATEGORIZED_LABEL);
-      byCategory.set(item.category, set);
-    }
-    const result: Partial<Record<Category, string[]>> = {};
-    for (const category of CATEGORIES) {
-      const keys = byCategory.get(category);
-      if (keys) {
-        result[category] = [...keys].sort((a, b) => a.localeCompare(b, "zh-Hant"));
-      }
-    }
-    return result;
-  }, [items]);
 
   const visibleItems = useMemo(() => {
     let list = items.filter((i) => (showUsed ? true : i.status === "active"));
@@ -289,10 +275,15 @@ function App() {
   async function handleMoveConfirm(target: { category: Category; subcategory: string }) {
     if (!selectedList || !moveTarget) return;
 
-    if (moveTarget === "selection") {
+    if (moveTarget.kind === "selection") {
       await bulkMoveCategory(selectedList.id, [...selectedItemIds], target);
       setSelectedItemIds(new Set());
       setMultiSelectMode(false);
+      return;
+    }
+
+    if (moveTarget.kind === "item") {
+      await bulkMoveCategory(selectedList.id, [moveTarget.item.id], target);
       return;
     }
 
@@ -311,8 +302,9 @@ function App() {
   }
 
   function moveTargetCount() {
-    if (moveTarget === "selection") return selectedItemIds.size;
     if (!moveTarget) return 0;
+    if (moveTarget.kind === "selection") return selectedItemIds.size;
+    if (moveTarget.kind === "item") return 1;
     return items.filter(
       (i) =>
         i.category === moveTarget.category &&
@@ -593,7 +585,7 @@ function App() {
                 取消
               </button>
               <button
-                onClick={() => setMoveTarget("selection")}
+                onClick={() => setMoveTarget({ kind: "selection" })}
                 disabled={selectedItemIds.size === 0}
                 className="rounded-full bg-gradient-to-br from-rose-500 to-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-rose-600/20 disabled:opacity-40"
               >
@@ -608,6 +600,14 @@ function App() {
         <MoveItemsModal
           count={moveTargetCount()}
           subcategories={subcategories}
+          initialCategory={
+            moveTarget.kind === "item"
+              ? moveTarget.item.category
+              : moveTarget.kind === "subcategory"
+                ? moveTarget.category
+                : undefined
+          }
+          initialSubcategory={moveTarget.kind === "item" ? moveTarget.item.subcategory : undefined}
           onClose={() => setMoveTarget(null)}
           onConfirm={handleMoveConfirm}
         />
@@ -670,11 +670,15 @@ function App() {
 
       {showCategorySettings && (
         <CategorySettingsModal
-          subcategoriesByCategory={subcategoriesByCategory}
+          items={items}
           onRenameSubcategory={handleRenameSubcategory}
           onMoveSubcategory={(category, subcategoryKey) => {
             setShowCategorySettings(false);
-            setMoveTarget({ category, subcategoryKey });
+            setMoveTarget({ kind: "subcategory", category, subcategoryKey });
+          }}
+          onMoveItem={(item) => {
+            setShowCategorySettings(false);
+            setMoveTarget({ kind: "item", item });
           }}
           onClose={() => setShowCategorySettings(false)}
         />
