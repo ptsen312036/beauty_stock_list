@@ -92,9 +92,9 @@ export function CategorySettingsModal({
   function bucketsFor(category: Category) {
     const bySub = byCategory.get(category);
     if (!bySub) return [];
-    return [...bySub.entries()]
-      .map(([key, subItems]) => ({ key, items: subItems }))
-      .sort((a, b) => a.key.localeCompare(b.key, "zh-Hant"));
+    return orderedSubKeysFor(category)
+      .filter((key) => bySub.has(key))
+      .map((key) => ({ key, items: bySub.get(key)! }));
   }
 
   function productsFor(subItems: StockItem[]) {
